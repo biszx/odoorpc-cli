@@ -1,0 +1,21 @@
+[project]
+name = "odoocli"
+description = "Command-line tool for Odoo using xmlrpc"
+readme = "README.md"
+requires-python = ">=3.10"
+dynamic = ["version"]
+dependencies = [
+    "click>=8.0",
+    "cryptography>=48.0",
+    "odoorpc>=0.10.1",
+]
+
+[project.scripts]
+odoo = "odoocli.cli:odoo"
+
+[tool.setuptools.dynamic]
+version = { attr = "odoocli.__version__" }
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
