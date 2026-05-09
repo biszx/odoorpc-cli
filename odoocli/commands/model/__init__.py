@@ -6,6 +6,7 @@ from .search import model_search
 
 @click.group("model")
 def model():
+    """Model-introspection commands"""
     pass
 
 

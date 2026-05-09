@@ -3,19 +3,29 @@ import json
 import click
 
 from odoocli.settings import ensure_config_exists
+from odoocli.tools.click_types import JSON
 from odoocli.tools.odoo_client import OdooClient
 
 
 @click.command("call-method")
 @click.argument("model")
 @click.option("--method", required=True, help="Model method to call")
-@click.option("--args", default="[]", help="JSON list of positional args")
-@click.option("--kwargs", default="{}", help="JSON object of keyword args")
+@click.option(
+    "--args",
+    type=JSON(expected="list"),
+    default=lambda: [],
+    help="JSON list of positional args, e.g. '[1, \"a\"]'. Defaults to an empty list.",
+)
+@click.option(
+    "--kwargs",
+    type=JSON(expected="dict"),
+    default=lambda: {},
+    help='JSON object of keyword args, e.g. \'{"key": "value"}\'.'
+    " Defaults to an empty object.",
+)
 def call_method(model, method, args, kwargs):
-    """Call a model method"""
+    """Call a model method on `model`"""
     ensure_config_exists()
     client = OdooClient.from_config()
-    args_obj = json.loads(args)
-    kwargs_obj = json.loads(kwargs)
-    res = client.execute_method(model, method, args=args_obj, kwargs=kwargs_obj)
+    res = client.execute_method(model, method, args=args, kwargs=kwargs)
     click.echo(json.dumps(res, indent=2, ensure_ascii=False))

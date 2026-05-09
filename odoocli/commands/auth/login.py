@@ -18,7 +18,7 @@ from odoocli.tools.odoo_client import OdooClient
     help="Odoo API key or password",
 )
 def login(host, db, username, password):
-    """Login to Odoo"""
+    """Authenticate and save Odoo connection settings."""
     ensure_config_exists()
     OdooClient(host=host, db=db, username=username, password=password)
     save_config(host=host, db=db, username=username, password=password)

@@ -6,6 +6,7 @@ from .read import search_read
 
 @click.group("search")
 def search():
+    """Search related commands"""
     pass
 
 

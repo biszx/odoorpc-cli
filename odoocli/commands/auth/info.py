@@ -8,7 +8,7 @@ from odoocli.tools.odoo_client import OdooClient
 
 @click.command("info")
 def info():
-    """Show information of the authenticated user"""
+    """Display information about the currently authenticated user."""
     ensure_config_exists()
     client = OdooClient.from_config()
     res = client.get_current_user()

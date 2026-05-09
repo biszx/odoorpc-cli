@@ -7,7 +7,7 @@ dynamic = ["version"]
 dependencies = ["click>=8.0", "cryptography>=48.0", "odoorpc>=0.10.1"]
 
 [project.scripts]
-odoo = "odoocli.odoo:odoo"
+odoo = "odoocli.cli:odoo"
 
 [tool.setuptools.dynamic]
 version = { attr = "odoocli.__version__" }

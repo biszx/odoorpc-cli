@@ -8,9 +8,13 @@ from odoocli.tools.odoo_client import OdooClient
 
 @click.command("unlink")
 @click.argument("model")
-@click.option("--ids", required=True, help="Comma-separated IDs to unlink")
+@click.option(
+    "--ids",
+    required=True,
+    help="Comma-separated record IDs to unlink (delete), e.g. '1,2,3'.",
+)
 def unlink(model: str, ids: str) -> None:
-    """Unlink (delete) records by IDs"""
+    """Delete records in `model`"""
     ensure_config_exists()
     client = OdooClient.from_config()
     id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]

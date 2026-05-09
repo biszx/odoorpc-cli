@@ -9,7 +9,7 @@ from odoocli.tools.odoo_client import OdooClient
 @click.command("field")
 @click.argument("model", required=True)
 def model_field(model: str):
-    """Get fields of a model"""
+    """Retrieve metadata for fields of `model`"""
     ensure_config_exists()
     client = OdooClient.from_config()
     res = client.model_field(model)

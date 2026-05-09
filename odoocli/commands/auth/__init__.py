@@ -1,11 +1,12 @@
 import click
 
-from .login import login as auth_login
 from .info import info as auth_info
+from .login import login as auth_login
 
 
 @click.group("auth")
 def auth():
+    """Authentication related commands"""
     pass
 
 
