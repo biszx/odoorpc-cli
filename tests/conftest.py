@@ -1,5 +1,3 @@
-import importlib
-
 import pytest
 from odoocli.settings import Settings, save_config
 from odoocli.tools.odoo_client import OdooClient
@@ -48,7 +46,7 @@ class FakeClient:
                 return False
         return True
 
-    def search_read(self, model, domain, fields, limit):
+    def search_read(self, model, domain, fields, limit):  # noqa: C901
         records = list(self._store.get(model, {}).values())
         # Very small domain support: [['id', '=', value]] and simple AND list
         if domain:
@@ -134,26 +132,13 @@ def patch_all(tmp_path_factory):
     # Decide whether to use the real local Odoo server or the FakeClient.
     # Try creating a short-timeout OdooClient to validate connectivity and credentials.
     try:
-        OdooClient(host=host, db="dev", username="admin", password="admin", timeout=2)
+        odoo = OdooClient(
+            host=host, db="dev", username="admin", password="admin", timeout=10
+        )
+        OdooClient.from_config = classmethod(lambda _cls: odoo)  # ty:ignore[invalid-assignment]
     except Exception:
-        modules = [
-            "odoocli.commands.auth.info",
-            "odoocli.commands.auth.login",
-            "odoocli.commands.create",
-            "odoocli.commands.call_method",
-            "odoocli.commands.write",
-            "odoocli.commands.search.read",
-            "odoocli.commands.search.count",
-            "odoocli.commands.unlink",
-            "odoocli.commands.model.field",
-            "odoocli.commands.model.search",
-        ]
-        for mod_name in modules:
-            try:
-                mod = importlib.import_module(mod_name)
-            except Exception:
-                continue
-            if hasattr(mod, "OdooClient"):
-                mod.OdooClient = FakeClient
+        from odoocli import cli
+
+        cli.OdooClient = FakeClient  # ty:ignore[invalid-assignment]
 
     yield
