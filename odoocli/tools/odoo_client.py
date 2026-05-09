@@ -55,18 +55,9 @@ class OdooClient:
         )[0]
         self.uid = self.user["id"]
 
-    def search_read(
-        self, model: str, domain: list[Any], fields: list[str], limit: int | None = None
-    ):
-        m = self.odoo.env[model]
-        return m.search_read(domain, fields=fields, limit=limit)
-
-    def search_count(self, model: str, domain: list[Any]):
-        m = self.odoo.env[model]
-        try:
-            return m.search_count(domain)
-        except Exception:
-            return len(m.search(domain))
+    def get_current_user(self) -> dict:
+        """Return the current authenticated user's information."""
+        return getattr(self, "user", {})
 
     def model_search(self, query: str) -> dict:
         IrModel = self.odoo.env["ir.model"]
@@ -81,6 +72,19 @@ class OdooClient:
     def model_field(self, model: str):
         m = self.odoo.env[model]
         return m.fields_get()
+
+    def search_read(
+        self, model: str, domain: list[Any], fields: list[str], limit: int | None = None
+    ):
+        m = self.odoo.env[model]
+        return m.search_read(domain, fields=fields, limit=limit)
+
+    def search_count(self, model: str, domain: list[Any]):
+        m = self.odoo.env[model]
+        try:
+            return m.search_count(domain)
+        except Exception:
+            return len(m.search(domain))
 
     def create(self, model: str, vals: list[dict]):
         m = self.odoo.env[model]
