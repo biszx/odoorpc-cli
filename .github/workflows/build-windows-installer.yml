@@ -26,7 +26,7 @@ jobs:
 
       - name: Build executable with PyInstaller
         run: |
-          pyinstaller --onefile --name odoo odoorpc_cli/cli.py
+          pyinstaller --onefile --name odoorpc_cli odoorpc_cli/cli.py
 
       - name: Set version from tag
         if: startsWith(github.ref, 'refs/tags/')
@@ -38,7 +38,9 @@ jobs:
       - name: Build installer with Inno Setup
         run: |
           echo Building installer using Inno Setup
-          powershell -Command "& 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' -DMyAppVersion=${{ env.VERSION || '0.0.0' }} packaging\windows\odoorpc_cli.iss"
+          if ($env:VERSION) { $v = $env:VERSION } else { $v = '0.0.0' }
+          Write-Host "ISCC command: C:\Program Files (x86)\Inno Setup 6\ISCC.exe -DMyAppVersion=$v packaging\\windows\\odoorpc_cli.iss"
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' -DMyAppVersion=$v 'packaging\\windows\\odoorpc_cli.iss'
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
