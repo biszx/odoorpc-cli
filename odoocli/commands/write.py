@@ -4,7 +4,6 @@ import click
 
 from odoocli.settings import ensure_config_exists
 from odoocli.tools.click_types import JSON
-from odoocli.tools.odoo_client import OdooClient
 
 
 @click.command("write")
@@ -16,10 +15,11 @@ from odoocli.tools.odoo_client import OdooClient
     required=True,
     help='JSON object of values to write to the records, e.g. \'{"name": "New"}\'.',
 )
-def write(model: str, ids: str, value) -> None:
+@click.pass_context
+def write(ctx, model: str, ids: str, value) -> None:
     """Update records in `model`"""
     ensure_config_exists()
-    client = OdooClient.from_config()
+    client = ctx.obj.get("odoo")
     vals = value
     id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]
     ok = client.write(model, id_list, vals)

@@ -4,7 +4,6 @@ import click
 
 from odoocli.settings import ensure_config_exists
 from odoocli.tools.click_types import JSON
-from odoocli.tools.odoo_client import OdooClient
 
 
 @click.command("count")
@@ -18,9 +17,10 @@ from odoocli.tools.odoo_client import OdooClient
         " Defaults to an empty list (no filter)."
     ),
 )
-def search_count(model: str, domain: list):
+@click.pass_context
+def search_count(ctx, model: str, domain: list):
     """Count records in `model` matching domain"""
     ensure_config_exists()
-    client = OdooClient.from_config()
+    client = ctx.obj.get("odoo")
     res = client.search_count(model, domain)
     click.echo(json.dumps({"count": res}, indent=2, ensure_ascii=False))

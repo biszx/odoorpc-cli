@@ -4,7 +4,6 @@ import click
 
 from odoocli.settings import ensure_config_exists
 from odoocli.tools.click_types import JSON
-from odoocli.tools.odoo_client import OdooClient
 
 
 @click.command("call-method")
@@ -23,9 +22,10 @@ from odoocli.tools.odoo_client import OdooClient
     help='JSON object of keyword args, e.g. \'{"key": "value"}\'.'
     " Defaults to an empty object.",
 )
-def call_method(model, method, args, kwargs):
+@click.pass_context
+def call_method(ctx, model, method, args, kwargs):
     """Call a model method on `model`"""
     ensure_config_exists()
-    client = OdooClient.from_config()
+    client = ctx.obj.get("odoo")
     res = client.execute_method(model, method, args=args, kwargs=kwargs)
     click.echo(json.dumps(res, indent=2, ensure_ascii=False))

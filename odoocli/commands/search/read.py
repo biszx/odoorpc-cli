@@ -4,7 +4,6 @@ import click
 
 from odoocli.settings import ensure_config_exists
 from odoocli.tools.click_types import JSON
-from odoocli.tools.odoo_client import OdooClient
 
 
 @click.command("read")
@@ -31,9 +30,10 @@ from odoocli.tools.odoo_client import OdooClient
     default=None,
     help="Limit the number of records returned. Defaults to None (no limit).",
 )
-def search_read(model: str, domain, fields: str, limit: int | None):
+@click.pass_context
+def search_read(ctx, model: str, domain, fields: str, limit: int | None):
     """Search and read records from `model`"""
     ensure_config_exists()
-    client = OdooClient.from_config()
+    client = ctx.obj.get("odoo")
     res = client.search_read(model, domain, fields, limit)
     click.echo(json.dumps(res, indent=2, ensure_ascii=False))
