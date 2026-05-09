@@ -15,3 +15,27 @@ brew install odoocli
 ```
 pip install odoocli
 ```
+
+## Usage
+
+Authenticate and save credentials (interactive):
+
+```
+odoo auth login --host https://odoo.example.com --db demo --username admin --password secret
+```
+
+Search for records:
+
+```
+odoo search read res.partner --domain "[[\"name\", \"ilike\", \"Acme\"]]" --fields name,email
+```
+
+Call a custom model method:
+
+```
+odoo call-method res.partner --method custom_method --args "[]" --kwargs "{}"
+```
+
+## Contributing
+
+Please open issues and pull requests on the repository. Run tests with `pytest`.

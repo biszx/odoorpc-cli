@@ -1,12 +1,6 @@
 import click
 
-from .commands.auth import auth
-from .commands.call_method import call_method
-from .commands.create import create
-from .commands.model import model
-from .commands.search import search
-from .commands.unlink import unlink
-from .commands.write import write
+from odoocli.commands import auth, call_method, create, model, search, unlink, write
 
 
 @click.group()
