@@ -1,4 +1,4 @@
-import odoocli.cli as cli_mod
+import odoorpc_cli.cli as cli_mod
 from click.testing import CliRunner
 
 

@@ -2,12 +2,12 @@ import json
 import uuid
 
 from click.testing import CliRunner
-from odoocli.cli import odoo
+from odoorpc_cli.cli import odoo
 
 
 def test_create_and_cleanup():
     # autouse fixture in tests/conftest.py configures a temp Settings and
-    # patches OdooClient when the local server is unreachable. Rely on that.
+    # patches odoorpc_client when the local server is unreachable. Rely on that.
     runner = CliRunner()
     unique = f"TestCreate-{uuid.uuid4().hex[:6]}"
     values = json.dumps([{"name": unique}])

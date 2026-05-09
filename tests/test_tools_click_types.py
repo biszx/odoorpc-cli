@@ -1,5 +1,5 @@
 import pytest
-from odoocli.tools.click_types import JSON
+from odoorpc_cli.tools.click_types import JSON
 
 
 def test_json_invalid_expected_raises():

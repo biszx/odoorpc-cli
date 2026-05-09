@@ -1,10 +1,10 @@
-; Inno Setup script for odoocli
-; Build with: "iscc /DMyAppVersion=1.2.3 odoocli.iss"
+; Inno Setup script for odoorpc_cli
+; Build with: "iscc /DMyAppVersion=1.2.3 odoorpc_cli.iss"
 
-#define MyAppName "odoocli"
+#define MyAppName "odoorpc_cli"
 #define MyAppVersion "0.0.0"
 #define MyAppPublisher "biszx"
-#define MyAppURL "https://github.com/biszx/odoocli"
+#define MyAppURL "https://github.com/biszx/odoorpc_cli"
 #define OutputBaseFilename MyAppName + "-" + MyAppVersion + "-setup"
 
 [Setup]

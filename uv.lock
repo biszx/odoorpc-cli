@@ -305,7 +305,7 @@ wheels = [
 ]
 
 [[package]]
-name = "odoocli"
+name = "odoorpc_cli"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

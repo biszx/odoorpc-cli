@@ -2,7 +2,7 @@ import json
 
 import click
 
-from odoocli.tools.click_types import JSON
+from odoorpc_cli.tools.click_types import JSON
 
 
 @click.command("write")

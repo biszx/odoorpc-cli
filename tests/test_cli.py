@@ -1,7 +1,7 @@
-import odoocli.cli as cli_mod
+import odoorpc_cli.cli as cli_mod
 from click.testing import CliRunner
-from odoocli import __version__
-from odoocli.cli import odoo
+from odoorpc_cli import __version__
+from odoorpc_cli.cli import odoo
 
 
 def test_version_and_help_options():
@@ -23,7 +23,7 @@ def test_odoo_group_exits_when_not_authenticated(monkeypatch):
 
     # Simulate from_config raising so ctx.obj['odoo'] becomes None
     monkeypatch.setattr(
-        cli_mod.OdooClient,
+        cli_mod.odoorpc_client,
         "from_config",
         classmethod(lambda _cls: (_ for _ in ()).throw(Exception("no"))),
     )
@@ -39,7 +39,7 @@ def test_auth_subcommand_allows_not_authenticated_info(monkeypatch):
 
     # Make from_config raise so ctx.obj['odoo'] is None, but invoking auth should not exit
     monkeypatch.setattr(
-        cli_mod.OdooClient,
+        cli_mod.odoorpc_client,
         "from_config",
         classmethod(lambda _cls: (_ for _ in ()).throw(Exception("no"))),
     )

@@ -1,7 +1,7 @@
 import json
 
 from click.testing import CliRunner
-from odoocli.cli import odoo
+from odoorpc_cli.cli import odoo
 
 
 def test_write_updates_record():

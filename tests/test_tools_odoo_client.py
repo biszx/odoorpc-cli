@@ -1,7 +1,7 @@
 import types
 from types import SimpleNamespace
 
-from odoocli.tools.odoo_client import OdooClient
+from odoorpc_cli.tools.odoo_client import odoorpc_client
 
 
 class _FakeModel:
@@ -19,7 +19,7 @@ class _FakeModel:
 
 
 def test_model_search_with_and_without_search_read():
-    c = OdooClient.__new__(OdooClient)
+    c = odoorpc_client.__new__(odoorpc_client)
     fake_ir = _FakeModel(sr=[{"model": "m", "name": "n"}])
     c.odoo = SimpleNamespace(**{"env": {"ir.model": fake_ir}})
     res = c.model_search("foo")
@@ -33,7 +33,7 @@ def test_model_search_with_and_without_search_read():
 
 
 def test_search_count_fallback_on_exception():
-    c = OdooClient.__new__(OdooClient)
+    c = odoorpc_client.__new__(odoorpc_client)
     fake = _FakeModel()
     # model name 'x' maps to fake model
     c.odoo = SimpleNamespace(**{"env": {"x": fake}})
@@ -42,7 +42,7 @@ def test_search_count_fallback_on_exception():
 
 
 def test_execute_method_with_args_and_kwargs():
-    c = OdooClient.__new__(OdooClient)
+    c = odoorpc_client.__new__(odoorpc_client)
 
     class M:
         def foo(self, *a, **k):
@@ -55,7 +55,7 @@ def test_execute_method_with_args_and_kwargs():
 
 
 def test_execute_method_without_kwargs():
-    c = OdooClient.__new__(OdooClient)
+    c = odoorpc_client.__new__(odoorpc_client)
 
     class M:
         def bar(self, *a):
@@ -67,7 +67,7 @@ def test_execute_method_without_kwargs():
 
 
 def test_create_write_unlink_and_model_field():
-    c = OdooClient.__new__(OdooClient)
+    c = odoorpc_client.__new__(odoorpc_client)
 
     class M:
         def __init__(self):
@@ -112,23 +112,23 @@ def test_from_config_module_level_monkeypatch(monkeypatch):
 
     # Patch the Settings.load implementation so that when odoo_client imports
     # module-level functions they will point to the patched implementation.
-    from odoocli.settings import Settings as S
+    from odoorpc_cli.settings import Settings as S
 
     S.load = classmethod(lambda cls=None: ("mh", "md", "mu", "mp"))
 
     # Reload the odoo_client module so its `from ..settings import ...`
     # bindings pick up our patched Settings.load
-    import odoocli.tools.odoo_client as OC
+    import odoorpc_cli.tools.odoo_client as OC
 
     importlib.reload(OC)
 
-    saved_init = OC.OdooClient.__init__
+    saved_init = OC.odoorpc_client.__init__
     try:
         # prevent real __init__ side-effects
-        OC.OdooClient.__init__ = lambda self, host, db, username, password, timeout=30: (
-            None
+        OC.odoorpc_client.__init__ = (
+            lambda self, host, db, username, password, timeout=30: None
         )
-        c = OC.OdooClient.from_config()
-        assert isinstance(c, OC.OdooClient)
+        c = OC.odoorpc_client.from_config()
+        assert isinstance(c, OC.odoorpc_client)
     finally:
-        OC.OdooClient.__init__ = saved_init
+        OC.odoorpc_client.__init__ = saved_init
