@@ -1,197 +1,383 @@
 ---
 name: odoorpc-cli
-description: Detailed usage guide for the `odoo` CLI. Includes examples for authentication, searching, creating, updating, deleting records, and calling model methods.
+description: Handles Odoo JSON-RPC operations through the `odoo` CLI, including authentication, model and field inspection, record querying, CRUD operations, and arbitrary model method execution.
 metadata:
   version: 1.1.0
   category: meta
 ---
 
-## Overview
+# Odoo RPC CLI
 
-`odoo` is a small command-line wrapper around an Odoo JSON-RPC client that lets you:
+A lightweight command-line interface for interacting with Odoo through JSON-RPC.
 
-- Authenticate and persist credentials locally (`odoo auth login`).
-- Introspect models and fields (`odoo model search`, `odoo model field`).
-- Search and read records (`odoo search read`, `odoo search count`).
-- Create, update, and delete records (`odoo create`, `odoo write`, `odoo unlink`).
-- Call arbitrary model methods (`odoo call-method`).
+`odoo` simplifies common Odoo operations directly from the terminal, including authentication, model inspection, record management, and method execution.
 
-## Quickstart
+## Features
 
-1. Install the package:
+- Authenticate and securely store credentials locally
+- Inspect available models and fields
+- Search, read, and count records
+- Create, update, and delete records
+- Execute arbitrary model methods
+- Validate JSON arguments before execution
+
+## Installation
+
+Install the package using pip:
 
 ```bash
 pip install odoorpc-cli
 ```
 
-2. Verify the CLI is available:
+Verify the installation:
 
 ```bash
 odoo --version
 ```
 
-3. Authenticate with user Odoo server:
+## Authentication
 
-Ask the user to manually run the login command and provide connection details:
-
-```bash
-odoo auth login
-```
-
-The `login` command can be passed as options or prompts for `host`, `db`, `username` and `password`.
-
-If you try to run other commands without authenticating, the CLI will print `Not authenticated — run 'odoo auth login' to authenticate` and exit.
-
-## Command reference & examples
-
-Notes on quoting: many options accept JSON values. Use single quotes around JSON on POSIX shells to avoid expansion, for example `'[{"a": 1}]'`. If your JSON contains single quotes, use double quotes and escape as needed, or use a here-doc.
-
-### Authentication
-
-**Authenticate with the Odoo server and manage credentials.**
+Authenticate against your Odoo server before using other commands:
 
 ```bash
 odoo auth login
 ```
 
-passed as options or prompts for `host`, `db`, `username`, and `password` (input hidden).
+You will be prompted for:
 
-**Show current user authentication info.**
+- Host
+- Database
+- Username
+- Password
+
+You may also provide these values through command options.
+
+Check the current authenticated session:
 
 ```bash
 odoo auth info
 ```
 
-### Search and read records
+If authentication has not been configured, the CLI will return:
 
-**Search for records matching a domain, read specified fields, and print results as JSON.**
+```text
+Not authenticated — run 'odoo auth login' to authenticate
+```
+
+## Command Overview
+
+| Category       | Command             | Description                         |
+| -------------- | ------------------- | ----------------------------------- |
+| Authentication | `odoo auth login`   | Authenticate with the Odoo server   |
+| Authentication | `odoo auth info`    | Show current authentication details |
+| Search         | `odoo search read`  | Search and retrieve records         |
+| Search         | `odoo search count` | Count matching records              |
+| Model          | `odoo model search` | Search available models             |
+| Model          | `odoo model field`  | Display model field metadata        |
+| Records        | `odoo create`       | Create new records                  |
+| Records        | `odoo write`        | Update existing records             |
+| Records        | `odoo unlink`       | Delete records                      |
+| Methods        | `odoo call-method`  | Execute arbitrary model methods     |
+
+## Search and Read Records
+
+Search for records matching a domain and return selected fields.
+
+### Syntax
 
 ```bash
 odoo search read <model> --domain '<domain-json>' --fields <field1,field2> --limit N
 ```
 
-Example:
+### Example
 
 ```bash
-odoo search read res.partner --domain '[ ["name", "ilike", "Acme"] ]' --fields name,email --limit 10
+odoo search read res.partner \
+  --domain '[["name", "ilike", "Acme"]]' \
+  --fields name,email \
+  --limit 10
 ```
 
-**Count records matching a domain.**
+## Count Records
+
+Return the number of records matching a domain.
+
+### Syntax
 
 ```bash
 odoo search count <model> --domain '<domain-json>'
 ```
 
-Example:
+### Example
 
 ```bash
-odoo search count res.partner --domain '[ ["is_company", "=", true] ]'
+odoo search count res.partner \
+  --domain '[["is_company", "=", true]]'
 ```
 
-### Model
+## Model Inspection
 
-**Find models by name or technical name.**
+### Search Models
+
+Find models by technical name or keyword.
+
+#### Syntax
 
 ```bash
 odoo model search <query>
 ```
 
-Example:
+#### Example
 
 ```bash
 odoo model search partner
 ```
 
-**Returns metadata for fields of `model`**
+### Inspect Model Fields
+
+Display metadata for all fields in a model.
+
+#### Syntax
 
 ```bash
 odoo model field <model>
 ```
 
-Example:
+#### Example
 
 ```bash
 odoo model field res.partner
 ```
 
-### Create
+## Create Records
 
-**Create new records in a model.**
+Create one or more records in a model.
+
+### Syntax
 
 ```bash
 odoo create <model> --values '<json-list>'
 ```
 
-`--values` expects a JSON list of objects. Example:
+### Example
 
 ```bash
-odoo create res.partner --values '[{"name": "New Co", "email": "x@example.com"}]'
+odoo create res.partner \
+  --values '[{"name": "New Co", "email": "x@example.com"}]'
 ```
 
-### Update records
+`--values` must be a JSON array containing one or more record objects.
 
-**Update existing records in a model.**
+## Update Records
+
+Update existing records by ID.
+
+### Syntax
 
 ```bash
 odoo write <model> --id '<id[,id...]>' --value '<json-object>'
 ```
 
-- `--id` accepts comma-separated IDs (example: `'1,2,3'`).
-- `--value` expects a JSON object of field values. Example:
+### Examples
+
+Update a single record:
 
 ```bash
-odoo write res.partner --id '42' --value '{"name": "Renamed Co"}'
-odoo write res.partner --id '41,42' --value '{"active": false}'
+odoo write res.partner \
+  --id '42' \
+  --value '{"name": "Renamed Co"}'
 ```
 
-### Delete records
+Update multiple records:
 
-**Delete records in a model.**
+```bash
+odoo write res.partner \
+  --id '41,42' \
+  --value '{"active": false}'
+```
+
+### Notes
+
+- `--id` accepts comma-separated IDs
+- `--value` must be a JSON object
+
+## Delete Records
+
+Delete records from a model.
+
+### Syntax
 
 ```bash
 odoo unlink <model> --ids '<id[,id...]>'
 ```
 
-- Example:
+### Example
 
 ```bash
 odoo unlink res.partner --ids '99'
 ```
 
-### Call method
+## Call Model Methods
 
-**Call arbitrary model methods.**
+Execute arbitrary model methods with positional and keyword arguments.
 
-```bash
-odoo call-method <model> --method <method_name> --args '<json-list>' --kwargs '<json-object>'
-```
-
-Example (positional args):
+### Syntax
 
 ```bash
-odoo call-method res.partner --method name_get --args '[42]'
+odoo call-method <model> \
+  --method <method_name> \
+  --args '<json-list>' \
+  --kwargs '<json-object>'
 ```
 
-Example (kwargs):
+### Examples
+
+#### Positional Arguments
 
 ```bash
-odoo call-method sale.order --method action_confirm --args '[1]' --kwargs '{}'
+odoo call-method res.partner \
+  --method name_get \
+  --args '[42]'
 ```
 
-## Argument types and validation
+#### Keyword Arguments
 
-This CLI uses a small `JSON` click `ParamType` for JSON options. The parameter type validates whether the provided JSON parses and matches the expected shape (`list` or `dict`).
+```bash
+odoo call-method sale.order \
+  --method action_confirm \
+  --args '[1]' \
+  --kwargs '{}'
+```
 
-- `--domain` expects a JSON list (domain list).
-- `--values` expects a JSON list of record objects (for `create`).
-- `--value` expects a JSON object (for `write`).
-- `--args` expects a JSON list (positional arguments for `call-method`).
-- `--kwargs` expects a JSON object (keyword arguments for `call-method`).
+## JSON Argument Validation
 
-If the CLI prints `Failed to parse JSON: ...`, re-check quoting and JSON validity.
+Several commands accept JSON input. The CLI validates the structure before execution.
+
+| Argument   | Expected Type |
+| ---------- | ------------- |
+| `--domain` | JSON array    |
+| `--values` | JSON array    |
+| `--value`  | JSON object   |
+| `--args`   | JSON array    |
+| `--kwargs` | JSON object   |
+
+## Common JSON Issues
+
+### Unescaped Quotes
+
+#### Problem
+
+```text
+Failed to parse JSON
+```
+
+#### Solution
+
+Wrap JSON with single quotes:
+
+```bash
+--domain '[["name", "=", "O'Reilly"]]'
+```
+
+Or escape quotes properly:
+
+```bash
+--domain "[[\"name\", \"=\", \"O'Reilly\"]]"
+```
+
+### Trailing Commas
+
+#### Problem
+
+Invalid JSON syntax caused by trailing commas.
+
+#### Solution
+
+Remove trailing commas from arrays and objects.
+
+### Wrong JSON Type
+
+#### Problem
+
+Passing an object instead of a list, or vice versa.
+
+#### Solution
+
+Use:
+
+- `[]` for arrays
+- `{}` for objects
+
+### Shell Expansion Issues
+
+#### Problem
+
+Shell interprets special characters unexpectedly.
+
+#### Solution
+
+Always quote JSON arguments.
+
+## Validate JSON Quickly
+
+Use Python to verify JSON syntax:
+
+```bash
+python -c 'import json; print(json.loads("<your-json>"))'
+```
 
 ## Troubleshooting
 
-- Not authenticated: run `odoo auth login` (the CLI aborts other commands when not authenticated).
-- Invalid JSON: check quoting and use `python -c 'import json; print(json.loads("<your-json>") )'` to validate quickly.
-- Connection/auth failures: verify `host`, `db`, `username`, and `password` are correct and that the Odoo server is reachable.
+### Authentication Errors
+
+Ensure:
+
+- Host is reachable
+- Database name is correct
+- Username and password are valid
+
+Re-authenticate if necessary:
+
+```bash
+odoo auth login
+```
+
+### Invalid JSON
+
+Verify:
+
+- Quotes are escaped correctly
+- Arrays and objects are valid JSON
+- JSON values are properly quoted
+
+### Connection Failures
+
+Check:
+
+- Network connectivity
+- Odoo server availability
+- Firewall or VPN restrictions
+
+## Quick Example Workflow
+
+```bash
+# Authenticate
+odoo auth login
+
+# Search records
+odoo search read res.partner \
+  --domain '[["is_company", "=", true]]' \
+  --fields name,email
+
+# Create a record
+odoo create res.partner \
+  --values '[{"name": "Example Co"}]'
+
+# Update a record
+odoo write res.partner \
+  --id '42' \
+  --value '{"active": false}'
+
+# Delete a record
+odoo unlink res.partner --ids '42'
+```
