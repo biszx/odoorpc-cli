@@ -15,6 +15,9 @@ odoo = "odoocli.cli:odoo"
 [tool.setuptools.dynamic]
 version = { attr = "odoocli.__version__" }
 
+[tool.setuptools.packages.find]
+exclude = ["tap*", "packaging*"]
+
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
