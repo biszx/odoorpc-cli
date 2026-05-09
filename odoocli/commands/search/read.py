@@ -2,7 +2,6 @@ import json
 
 import click
 
-from odoocli.settings import ensure_config_exists
 from odoocli.tools.click_types import JSON
 
 
@@ -33,7 +32,6 @@ from odoocli.tools.click_types import JSON
 @click.pass_context
 def search_read(ctx, model: str, domain, fields: str, limit: int | None):
     """Search and read records from `model`"""
-    ensure_config_exists()
     client = ctx.obj.get("odoo")
 
     # prepare fields argument

@@ -2,7 +2,6 @@ import json
 
 import click
 
-from odoocli.settings import ensure_config_exists
 from odoocli.tools.click_types import JSON
 
 
@@ -18,7 +17,6 @@ from odoocli.tools.click_types import JSON
 @click.pass_context
 def write(ctx, model: str, ids: str, value) -> None:
     """Update records in `model`"""
-    ensure_config_exists()
     client = ctx.obj.get("odoo")
     vals = value
     id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]

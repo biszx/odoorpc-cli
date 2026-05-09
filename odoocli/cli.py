@@ -30,4 +30,4 @@ odoo.add_command(call_method)
 
 
 if __name__ == "__main__":
-    odoo(obj={})
+    odoo(obj={})  # pragma: no cover - script entrypoint

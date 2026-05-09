@@ -85,16 +85,3 @@ class Settings:
             raise RuntimeError("Encrypted password missing from config")
         password = cls.decrypt_password(token)
         return host, db, username, password
-
-
-# Backwards-compatible module-level functions
-def ensure_config_exists() -> None:
-    Settings.ensure_dir()
-
-
-def save_config(host: str, db: str, username: str, password: str) -> None:
-    Settings.save(host, db, username, password)
-
-
-def load_config() -> tuple[str, str, str, str]:
-    return Settings.load()

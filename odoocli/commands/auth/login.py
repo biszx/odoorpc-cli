@@ -1,6 +1,6 @@
 import click
 
-from odoocli.settings import ensure_config_exists, save_config
+from odoocli.settings import Settings
 from odoocli.tools.odoo_client import OdooClient
 
 
@@ -19,7 +19,6 @@ from odoocli.tools.odoo_client import OdooClient
 )
 def login(host, db, username, password):
     """Authenticate and save Odoo connection settings."""
-    ensure_config_exists()
     OdooClient(host=host, db=db, username=username, password=password)
-    save_config(host=host, db=db, username=username, password=password)
+    Settings.save(host=host, db=db, username=username, password=password)
     click.echo("Login successful!")

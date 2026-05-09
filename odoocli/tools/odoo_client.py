@@ -5,7 +5,7 @@ from typing import Any
 
 import odoorpc
 
-from ..settings import ensure_config_exists, load_config
+from ..settings import Settings
 
 
 class OdooClient:
@@ -113,6 +113,5 @@ class OdooClient:
 
     @classmethod
     def from_config(cls):
-        ensure_config_exists()
-        host, db, username, password = load_config()
+        host, db, username, password = Settings.load()
         return cls(host=host, db=db, username=username, password=password)
