@@ -27,7 +27,7 @@ from odoocli.tools.click_types import JSON
 )
 @click.option(
     "--limit",
-    default=None,
+    type=int,
     help="Limit the number of records returned. Defaults to None (no limit).",
 )
 @click.pass_context
@@ -35,5 +35,12 @@ def search_read(ctx, model: str, domain, fields: str, limit: int | None):
     """Search and read records from `model`"""
     ensure_config_exists()
     client = ctx.obj.get("odoo")
-    res = client.search_read(model, domain, fields, limit)
+
+    # prepare fields argument
+    if fields == "all" or not fields:
+        fields_arg = ["id"]
+    else:
+        fields_arg = [f.strip() for f in fields.split(",")]
+
+    res = client.search_read(model, domain, fields_arg, limit)
     click.echo(json.dumps(res, indent=2, ensure_ascii=False))
