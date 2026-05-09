@@ -4,15 +4,26 @@ A command-line interface for Odoo, providing quick access to common operations l
 
 ## Installation
 
-### MacOS/Linux:
+### Homebrew (tap)
 
-```
-brew install odoocli
+Install `odoocli` from the project's Homebrew tap (recommended):
+
+```bash
+brew tap biszx/tap https://github.com/biszx/homebrew-tap
+brew install biszx/tap/odoocli
 ```
 
-### Python package:
+### Windows
 
-```
+Standalone executable (no Python required): download the `odoocli` Windows executable from a release's assets (the repository contains a CI workflow that builds an exe with PyInstaller and uploads it as an artifact). Place the exe on `PATH` or run it directly.
+
+Installer (recommended): download the Inno Setup installer (`odoocli-X.Y.Z-setup.exe`) from a release's assets — it creates shortcuts and an uninstaller for easy setup on Windows.
+
+### Python (pip)
+
+Install from PyPI:
+
+```bash
 pip install odoocli
 ```
 

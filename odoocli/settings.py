@@ -1,24 +1,13 @@
-import base64
-import hashlib
 import json
 import os
-import platform
-import uuid
 
 from cryptography.fernet import Fernet
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
 class Settings:
-    """
-    Manage ~/.odoo/config.json
-    """
-
     CONFIG_DIR = os.path.expanduser("~/.odoo")
     CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
-    _purpose = b"odoo-cli-machine-key"
+    KEY_PATH = os.path.join(CONFIG_DIR, "machine.key")
 
     @classmethod
     def ensure_dir(cls) -> None:
@@ -26,34 +15,41 @@ class Settings:
             os.makedirs(cls.CONFIG_DIR, exist_ok=True)
 
     @classmethod
-    def _get_salt(cls) -> bytes:
-        node = platform.node() or ""
-        mac = str(uuid.getnode())
-        raw = (node + mac).encode("utf-8")
-        return hashlib.sha256(raw).digest()
+    def _get_or_create_key(cls) -> bytes:
+        """Return a persistent Fernet key stored in `~/.odoo/machine.key`.
 
-    @classmethod
-    def _derive_key(cls) -> bytes:
-        salt = cls._get_salt()
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=100000,
-            backend=default_backend(),
-        )
-        key = kdf.derive(cls._purpose)
-        return base64.urlsafe_b64encode(key)
+        The key is created once and written with restrictive permissions (0600).
+        """
+        cls.ensure_dir()
+        if os.path.isfile(cls.KEY_PATH):
+            with open(cls.KEY_PATH, "rb") as f:
+                return f.read()
+
+        key = Fernet.generate_key()
+        # Write atomically and restrict permissions
+        temp_path = cls.KEY_PATH + ".tmp"
+        with open(temp_path, "wb") as f:
+            f.write(key)
+        try:
+            os.replace(temp_path, cls.KEY_PATH)
+            os.chmod(cls.KEY_PATH, 0o600)
+        finally:
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except Exception:
+                    pass
+        return key
 
     @classmethod
     def encrypt_password(cls, plain: str) -> str:
-        key = cls._derive_key()
+        key = cls._get_or_create_key()
         f = Fernet(key)
         return f.encrypt(plain.encode("utf-8")).decode("utf-8")
 
     @classmethod
     def decrypt_password(cls, token: str) -> str:
-        key = cls._derive_key()
+        key = cls._get_or_create_key()
         f = Fernet(key)
         return f.decrypt(token.encode("utf-8")).decode("utf-8")
 
@@ -85,16 +81,3 @@ class Settings:
             raise RuntimeError("Encrypted password missing from config")
         password = cls.decrypt_password(token)
         return host, db, username, password
-
-
-# Backwards-compatible module-level functions
-def ensure_config_exists() -> None:
-    Settings.ensure_dir()
-
-
-def save_config(host: str, db: str, username: str, password: str) -> None:
-    Settings.save(host, db, username, password)
-
-
-def load_config() -> tuple[str, str, str, str]:
-    return Settings.load()

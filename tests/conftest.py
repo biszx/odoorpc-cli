@@ -1,5 +1,5 @@
 import pytest
-from odoocli.settings import Settings, save_config
+from odoocli.settings import Settings
 from odoocli.tools.odoo_client import OdooClient
 
 
@@ -127,7 +127,7 @@ def patch_all(tmp_path_factory):
     host = "http://localhost:8069"
     Settings.CONFIG_DIR = str(cfg_dir)
     Settings.CONFIG_PATH = str(cfg_dir / "config.json")
-    save_config(host=host, db="dev", username="admin", password="admin")
+    Settings.save(host=host, db="dev", username="admin", password="admin")
 
     # Decide whether to use the real local Odoo server or the FakeClient.
     # Try creating a short-timeout OdooClient to validate connectivity and credentials.
