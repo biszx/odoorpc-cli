@@ -8,7 +8,7 @@ import odoorpc
 from ..settings import Settings
 
 
-class OdooClient:
+class odoorpc_client:
     """
     A thin Odoo JSON-RPC client using odoorpc (mirrors patterns from biszx-odoo-mcp)
     """

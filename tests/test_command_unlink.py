@@ -1,12 +1,12 @@
 import json
 
 from click.testing import CliRunner
-from odoocli.cli import odoo
-from odoocli.tools.odoo_client import OdooClient
+from odoorpc_cli.cli import odoo
+from odoorpc_cli.tools.odoo_client import odoorpc_client
 
 
 def test_unlink_existing_record():
-    client = OdooClient.from_config()
+    client = odoorpc_client.from_config()
     # create a record to delete
     ids = client.create("res.partner", [{"name": "ToDelete"}])
     assert isinstance(ids, list) and ids

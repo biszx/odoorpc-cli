@@ -1,5 +1,5 @@
 from click.testing import CliRunner
-from odoocli.cli import odoo
+from odoorpc_cli.cli import odoo
 
 
 def test_model_field_res_partner():

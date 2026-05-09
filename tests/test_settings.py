@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from odoocli.settings import Settings
+from odoorpc_cli.settings import Settings
 
 
 def test_encrypt_decrypt_roundtrip():

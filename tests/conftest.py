@@ -1,6 +1,6 @@
 import pytest
-from odoocli.settings import Settings
-from odoocli.tools.odoo_client import OdooClient
+from odoorpc_cli.settings import Settings
+from odoorpc_cli.tools.odoo_client import odoorpc_client
 
 
 class FakeClient:
@@ -130,15 +130,15 @@ def patch_all(tmp_path_factory):
     Settings.save(host=host, db="dev", username="admin", password="admin")
 
     # Decide whether to use the real local Odoo server or the FakeClient.
-    # Try creating a short-timeout OdooClient to validate connectivity and credentials.
+    # Try creating a short-timeout odoorpc_client to validate connectivity and credentials.
     try:
-        odoo = OdooClient(
+        odoo = odoorpc_client(
             host=host, db="dev", username="admin", password="admin", timeout=10
         )
-        OdooClient.from_config = classmethod(lambda _cls: odoo)  # ty:ignore[invalid-assignment]
+        odoorpc_client.from_config = classmethod(lambda _cls: odoo)  # ty:ignore[invalid-assignment]
     except Exception:
-        from odoocli import cli
+        from odoorpc_cli import cli
 
-        cli.OdooClient = FakeClient  # ty:ignore[invalid-assignment]
+        cli.odoorpc_client = FakeClient  # ty:ignore[invalid-assignment]
 
     yield
