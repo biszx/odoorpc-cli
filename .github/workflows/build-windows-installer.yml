@@ -1,4 +1,4 @@
-name: Build Windows executable (PyInstaller)
+name: Build Windows installer
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-windows-exe:
+  build-windows-installer:
     runs-on: windows-latest
     steps:
       - name: Checkout repository
