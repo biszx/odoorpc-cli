@@ -1,4 +1,5 @@
 import json
+import os
 
 import pytest
 from odoorpc_cli.settings import Settings
@@ -48,3 +49,66 @@ def test_load_raises_when_token_missing(tmp_path):
 
     with pytest.raises(RuntimeError):
         Settings.load()
+
+
+def test_get_or_create_key_writes_and_reads(tmp_path, monkeypatch):
+    # Use a temp directory for the key file to avoid touching the real home
+    cfg_dir = tmp_path / "cfg"
+    key_path = cfg_dir / "machine.key"
+    monkeypatch.setattr(Settings, "CONFIG_DIR", str(cfg_dir))
+    monkeypatch.setattr(Settings, "CONFIG_PATH", str(cfg_dir / "config.json"))
+    monkeypatch.setattr(Settings, "KEY_PATH", str(key_path))
+
+    key1 = Settings._get_or_create_key()
+    assert isinstance(key1, (bytes, bytearray))
+    # Calling again should read the same key
+    key2 = Settings._get_or_create_key()
+    assert key1 == key2
+    assert os.path.isfile(str(key_path))
+
+
+def test_get_or_create_key_cleans_temp_on_replace_error(tmp_path, monkeypatch):
+    cfg_dir = tmp_path / "cfg2"
+    key_path = cfg_dir / "machine.key"
+    monkeypatch.setattr(Settings, "CONFIG_DIR", str(cfg_dir))
+    monkeypatch.setattr(Settings, "CONFIG_PATH", str(cfg_dir / "config.json"))
+    monkeypatch.setattr(Settings, "KEY_PATH", str(key_path))
+
+    # Simulate os.replace failing so the temp file must be cleaned up
+    original_replace = os.replace
+
+    def bad_replace(src, dst):
+        raise OSError("replace-failed")
+
+    monkeypatch.setattr(os, "replace", bad_replace)
+
+    temp_path = str(key_path) + ".tmp"
+    with pytest.raises(OSError):
+        Settings._get_or_create_key()
+
+    # temp file should not be left behind
+    assert not os.path.exists(temp_path)
+
+    # restore original behavior for cleanliness
+    monkeypatch.setattr(os, "replace", original_replace)
+
+
+def test_get_or_create_key_swallow_remove_exception(tmp_path, monkeypatch):
+    cfg_dir = tmp_path / "cfg3"
+    key_path = cfg_dir / "machine.key"
+    monkeypatch.setattr(Settings, "CONFIG_DIR", str(cfg_dir))
+    monkeypatch.setattr(Settings, "CONFIG_PATH", str(cfg_dir / "config.json"))
+    monkeypatch.setattr(Settings, "KEY_PATH", str(key_path))
+
+    # Make os.replace copy the temp file (leave temp file behind), then make os.remove raise
+    import shutil
+
+    monkeypatch.setattr(os, "replace", lambda src, dst: shutil.copyfile(src, dst))
+
+    def bad_remove(p):
+        raise OSError("remove-failed")
+
+    monkeypatch.setattr(os, "remove", bad_remove)
+
+    # Should not raise; removal error is swallowed
+    Settings._get_or_create_key()
