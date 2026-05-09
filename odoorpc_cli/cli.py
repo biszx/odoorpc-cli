@@ -2,7 +2,7 @@ import click
 
 from odoorpc_cli import __version__
 from odoorpc_cli.commands import auth, call_method, create, model, search, unlink, write
-from odoorpc_cli.tools.odoo_client import odoorpc_client
+from odoorpc_cli.tools.odoo_client import OdooClient
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -12,7 +12,7 @@ def odoo(ctx):
     """Odoo CLI - interact with your Odoo instance from the command line"""
     ctx.ensure_object(dict)
     try:
-        ctx.obj["odoo"] = odoorpc_client.from_config()
+        ctx.obj["odoo"] = OdooClient.from_config()
     except Exception:
         ctx.obj["odoo"] = None
         if ctx.invoked_subcommand != "auth":

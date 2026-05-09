@@ -1,7 +1,7 @@
 import click
 
 from odoorpc_cli.settings import Settings
-from odoorpc_cli.tools.odoo_client import odoorpc_client
+from odoorpc_cli.tools.odoo_client import OdooClient
 
 
 @click.command("login")
@@ -21,6 +21,6 @@ from odoorpc_cli.tools.odoo_client import odoorpc_client
 )
 def login(host, db, username, password):
     """Authenticate and save Odoo connection settings."""
-    odoorpc_client(host=host, db=db, username=username, password=password)
+    OdooClient(host=host, db=db, username=username, password=password)
     Settings.save(host=host, db=db, username=username, password=password)
     click.echo("Login successful!")
