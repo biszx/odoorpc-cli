@@ -19,10 +19,10 @@ Compression=lzma
 SolidCompression=yes
 
 [Files]
-Source: "{#SourcePath}\dist\odoo.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\dist\odoorpc_cli.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\odoo.exe"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\odoorpc_cli.exe"
 
 [Run]
-Filename: "{app}\odoo.exe"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\odoorpc_cli.exe"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
