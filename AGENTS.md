@@ -16,4 +16,4 @@ Layout: single-context — a `CONTEXT.md` at the repo root and `docs/adr/` for A
 
 ### Testing
 
-AI agents should run the repository test suite using the project's environment wrapper. See `docs/agents/testing.md` for the required command and guidance.
+When writing or running tests, must read the `docs/agents/testing.md` documentation to understand the testing framework and how to use it effectively.

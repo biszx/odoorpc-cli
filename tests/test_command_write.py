@@ -56,3 +56,44 @@ def test_write_updates_record():
 
     # cleanup via CLI
     runner.invoke(odoo, ["unlink", "res.partner", "--ids", str(rid)])
+
+
+def test_write_with_domain():
+    runner = CliRunner()
+    # create a record via CLI
+    create_res = runner.invoke(
+        odoo,
+        ["create", "res.partner", "--values", json.dumps([{"name": "WDomain"}])],
+    )
+    assert create_res.exit_code == 0
+    created = json.loads(create_res.output)
+    ids = created.get("ids")
+    assert ids
+    rid = ids[0]
+
+    domain = json.dumps([["id", "=", rid]])
+    res = runner.invoke(
+        odoo,
+        [
+            "write",
+            "res.partner",
+            "--domain",
+            domain,
+            "--value",
+            json.dumps({"name": "DomainUpdated"}),
+        ],
+    )
+    assert res.exit_code == 0
+    out = json.loads(res.output)
+    assert out.get("success") is True
+
+
+def test_write_no_selection():
+    runner = CliRunner()
+    res = runner.invoke(
+        odoo,
+        ["write", "res.partner", "--value", json.dumps({"name": "X"})],
+    )
+    assert res.exit_code == 0
+    out = json.loads(res.output)
+    assert out == {"success": False, "ids": []}

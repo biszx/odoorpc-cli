@@ -23,7 +23,7 @@ def test_odoo_group_exits_when_not_authenticated(monkeypatch):
 
     # Simulate from_config raising so ctx.obj['odoo'] becomes None
     monkeypatch.setattr(
-        cli_mod.odoorpc_client,
+        cli_mod.OdooClient,
         "from_config",
         classmethod(lambda _cls: (_ for _ in ()).throw(Exception("no"))),
     )
@@ -39,7 +39,7 @@ def test_auth_subcommand_allows_not_authenticated_info(monkeypatch):
 
     # Make from_config raise so ctx.obj['odoo'] is None, but invoking auth should not exit
     monkeypatch.setattr(
-        cli_mod.odoorpc_client,
+        cli_mod.OdooClient,
         "from_config",
         classmethod(lambda _cls: (_ for _ in ()).throw(Exception("no"))),
     )

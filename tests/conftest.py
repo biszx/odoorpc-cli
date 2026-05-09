@@ -1,6 +1,6 @@
 import pytest
 from odoorpc_cli.settings import Settings
-from odoorpc_cli.tools.odoo_client import odoorpc_client
+from odoorpc_cli.tools.odoo_client import OdooClient
 
 
 class FakeClient:
@@ -91,10 +91,11 @@ class FakeClient:
                 lim = None
             if lim is not None:
                 records = records[:lim]
-        # If there are no records for common demo models, return a small
-        # default so existing tests that expect a non-empty result continue
-        # to pass. This mirrors the previous FakeClient behavior.
-        if not records and model == "res.partner":
+        # If there are no records for common demo models and no domain was
+        # provided, return a small default so existing tests that expect a
+        # non-empty result continue to pass. Do NOT return this fallback
+        # when a domain is provided (tests that check counts should see 0).
+        if not records and model == "res.partner" and not domain:
             return [{"id": 1, "name": "A"}]
 
         return records
@@ -130,15 +131,15 @@ def patch_all(tmp_path_factory):
     Settings.save(host=host, db="dev", username="admin", password="admin")
 
     # Decide whether to use the real local Odoo server or the FakeClient.
-    # Try creating a short-timeout odoorpc_client to validate connectivity and credentials.
+    # Try creating a short-timeout OdooClient to validate connectivity and credentials.
     try:
-        odoo = odoorpc_client(
+        odoo = OdooClient(
             host=host, db="dev", username="admin", password="admin", timeout=10
         )
-        odoorpc_client.from_config = classmethod(lambda _cls: odoo)  # ty:ignore[invalid-assignment]
+        OdooClient.from_config = classmethod(lambda _cls: odoo)  # ty:ignore[invalid-assignment]
     except Exception:
-        from odoorpc_cli import cli
-
-        cli.odoorpc_client = FakeClient  # ty:ignore[invalid-assignment]
+        # Use a shared FakeClient instance
+        fake = FakeClient()
+        OdooClient.from_config = classmethod(lambda _cls: fake)  # ty:ignore[invalid-assignment]
 
     yield

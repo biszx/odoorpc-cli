@@ -1,7 +1,7 @@
 import types
 from types import SimpleNamespace
 
-from odoorpc_cli.tools.odoo_client import odoorpc_client
+from odoorpc_cli.tools.odoo_client import OdooClient
 
 
 class _FakeModel:
@@ -19,7 +19,7 @@ class _FakeModel:
 
 
 def test_model_search_with_and_without_search_read():
-    c = odoorpc_client.__new__(odoorpc_client)
+    c = OdooClient.__new__(OdooClient)
     fake_ir = _FakeModel(sr=[{"model": "m", "name": "n"}])
     c.odoo = SimpleNamespace(**{"env": {"ir.model": fake_ir}})
     res = c.model_search("foo")
@@ -33,7 +33,7 @@ def test_model_search_with_and_without_search_read():
 
 
 def test_search_count_fallback_on_exception():
-    c = odoorpc_client.__new__(odoorpc_client)
+    c = OdooClient.__new__(OdooClient)
     fake = _FakeModel()
     # model name 'x' maps to fake model
     c.odoo = SimpleNamespace(**{"env": {"x": fake}})
@@ -42,7 +42,7 @@ def test_search_count_fallback_on_exception():
 
 
 def test_execute_method_with_args_and_kwargs():
-    c = odoorpc_client.__new__(odoorpc_client)
+    c = OdooClient.__new__(OdooClient)
 
     class M:
         def foo(self, *a, **k):
@@ -55,7 +55,7 @@ def test_execute_method_with_args_and_kwargs():
 
 
 def test_execute_method_without_kwargs():
-    c = odoorpc_client.__new__(odoorpc_client)
+    c = OdooClient.__new__(OdooClient)
 
     class M:
         def bar(self, *a):
@@ -67,7 +67,7 @@ def test_execute_method_without_kwargs():
 
 
 def test_create_write_unlink_and_model_field():
-    c = odoorpc_client.__new__(odoorpc_client)
+    c = OdooClient.__new__(OdooClient)
 
     class M:
         def __init__(self):
@@ -122,13 +122,57 @@ def test_from_config_module_level_monkeypatch(monkeypatch):
 
     importlib.reload(OC)
 
-    saved_init = OC.odoorpc_client.__init__
+    saved_init = OC.OdooClient.__init__
     try:
         # prevent real __init__ side-effects
-        OC.odoorpc_client.__init__ = (
-            lambda self, host, db, username, password, timeout=30: None
+        OC.OdooClient.__init__ = lambda self, host, db, username, password, timeout=30: (
+            None
         )
-        c = OC.odoorpc_client.from_config()
-        assert isinstance(c, OC.odoorpc_client)
+        c = OC.OdooClient.from_config()
+        assert isinstance(c, OC.OdooClient)
     finally:
-        OC.odoorpc_client.__init__ = saved_init
+        OC.OdooClient.__init__ = saved_init
+
+
+def test_connect_fetches_user_and_search_read(monkeypatch):
+    import odoorpc_cli.tools.odoo_client as OC
+
+    class FakeUserModel:
+        def search_read(self, domain, fields=None, limit=None):
+            return [{"id": 42, "name": "Tester"}]
+
+    class FakeModelM:
+        def search_read(self, domain, fields=None, limit=None):
+            return [{"id": 7, "name": "ModelName"}]
+
+    class FakeODOO:
+        def __init__(self, hostname, protocol=None, port=None, timeout=None):
+            self.hostname = hostname
+            self.protocol = protocol
+            self.port = port
+            self.timeout = timeout
+            self.env = {"res.users": FakeUserModel(), "m": FakeModelM()}
+
+        def login(self, db, username, password):
+            self.logged = (db, username, password)
+
+    # Patch the module's odoorpc.ODOO to return our fake implementation
+    monkeypatch.setattr(OC, "odoorpc", types.SimpleNamespace(ODOO=FakeODOO))
+
+    c = OC.OdooClient.__new__(OC.OdooClient)
+    c.db = "db"
+    c.username = "u"
+    c.password = "p"
+    c.timeout = 5
+    c.hostname = "host"
+    c.port = 80
+    c.is_https = False
+
+    c._connect()
+
+    assert c.uid == 42
+    assert c.get_current_user()["name"] == "Tester"
+
+    res = c.search_read("m", [], ["id", "name"], None)
+    assert isinstance(res, list)
+    assert res[0]["id"] == 7

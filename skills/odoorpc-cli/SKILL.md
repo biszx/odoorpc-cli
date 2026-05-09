@@ -170,17 +170,18 @@ odoo create res.partner \
 
 ## Update Records
 
-Update existing records by ID.
+Update existing records by ID or domain.
 
 ### Syntax
 
 ```bash
 odoo write <model> --id '<id[,id...]>' --value '<json-object>'
+odoo write <model> --domain '<domain-json>' --value '<json-object>' --limit N
 ```
 
 ### Examples
 
-Update a single record:
+Update a single record by id:
 
 ```bash
 odoo write res.partner \
@@ -188,7 +189,7 @@ odoo write res.partner \
   --value '{"name": "Renamed Co"}'
 ```
 
-Update multiple records:
+Update multiple records by id:
 
 ```bash
 odoo write res.partner \
@@ -196,10 +197,20 @@ odoo write res.partner \
   --value '{"active": false}'
 ```
 
+Update records by domain:
+
+```bash
+odoo write res.partner \
+  --domain '[ ["name","ilike","Acme"] ]' \
+  --value '{"active": false}' \
+  --limit 10
+```
+
 ### Notes
 
 - `--id` accepts comma-separated IDs
 - `--value` must be a JSON object
+- `--domain` accepts a JSON array (Odoo domain) and is resolved to matching IDs; use `--limit` to bound results when using `--domain`. When both `--id` and `--domain` are provided, the union of IDs will be used.
 
 ## Delete Records
 
@@ -209,13 +220,28 @@ Delete records from a model.
 
 ```bash
 odoo unlink <model> --ids '<id[,id...]>'
+odoo unlink <model> --domain '<domain-json>' --limit N
 ```
 
-### Example
+### Examples
 
 ```bash
 odoo unlink res.partner --ids '99'
 ```
+
+Delete records by domain:
+
+```bash
+odoo unlink res.partner \
+  --domain '[["is_company","=",true]]' \
+  --limit 50
+```
+
+### Notes
+
+- `--ids` accepts comma-separated IDs
+- `--domain` accepts a JSON array (Odoo domain). Use `--limit` to bound results when using `--domain`.
+- When both `--ids` and `--domain` are provided, the union of IDs will be used.
 
 ## Call Model Methods
 
@@ -380,4 +406,8 @@ odoo write res.partner \
 
 # Delete a record
 odoo unlink res.partner --ids '42'
+
+# Delete records by domain
+odoo unlink res.partner \
+  --domain '[["is_company","=",true]]'
 ```
