@@ -6,13 +6,15 @@ from odoocli.tools.odoo_client import OdooClient
 
 @click.command("login")
 @click.option(
-    "--host", prompt=True, help="Odoo server base URL, e.g. http://localhost:8069"
+    "--host",
+    prompt="Odoo server base URL",
+    help="Odoo server base URL, e.g. http://localhost:8069",
 )
-@click.option("--db", prompt=True, help="Odoo database name")
-@click.option("--username", prompt=True, help="Odoo username")
+@click.option("--db", prompt="Odoo database name", help="Odoo database name")
+@click.option("--username", prompt="Odoo username", help="Odoo username")
 @click.option(
     "--password",
-    prompt=True,
+    prompt="Odoo password",
     hide_input=True,
     confirmation_prompt=True,
     help="Odoo API key or password",
