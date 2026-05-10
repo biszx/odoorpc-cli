@@ -1,4 +1,4 @@
-name: Build Windows installer
+name: Build Windows installer and publish release
 
 on:
   push:
@@ -141,15 +141,16 @@ jobs:
         run: npm install -g @github/copilot
 
       - name: Run Copilot CLI to generate release notes
+        id: run_copilot
         env:
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
           LAST_TAG: ${{ steps.detect_tag.outputs.last_tag }}
         run: |
           set -e
           mkdir -p release_artifacts
           RANGE="${LAST_TAG}..${GITHUB_REF_NAME}"
           if [ -z "$LAST_TAG" ]; then RANGE="HEAD"; fi
-          copilot -p "You are a strict release-notes generator. Use ONLY the commit messages and code diffs in the git range ${RANGE} to produce release notes. Use the template file at .github/release-notes/TEMPLATE.md exactly: replace {{VERSION}} with ${GITHUB_REF_NAME}, and fill {{SUMMARY}}, {{ADDED}}, {{CHANGED}}, {{FIXED}} using only commit messages and code diffs. Do NOT hallucinate, infer, or add context beyond the commits and diffs. Output MUST be valid Markdown and match the template structure exactly. For each bullet use: '- <commit message> (<author>) - <commit url>'. Omit empty sections. Write the output exactly to release_artifacts/copilot_release_notes.md" --model gpt-5-mini --allow-tool='shell(git:*)' --allow-tool=read --allow-tool=write --no-ask-user
+          copilot -p "You are a strict release-notes generator. Use ONLY the commit messages and code diffs in the git range ${RANGE} to produce release notes. Use the template file at docs/release-notes/TEMPLATE.md exactly: replace {{VERSION}} with ${GITHUB_REF_NAME}, and fill {{SUMMARY}}, {{ADDED}}, {{CHANGED}}, {{FIXED}} using only commit messages and code diffs. Do NOT hallucinate, infer, or add context beyond the commits and diffs. Output MUST be valid Markdown and match the template structure exactly. For each bullet use: '- <commit message> (<author>) - <commit url>'. Omit empty sections. Write the output exactly to release_artifacts/copilot_release_notes.md" --model gpt-5-mini --allow-tool='shell(git:*)' --allow-tool=read --allow-tool=write --no-ask-user
 
       - name: Read Copilot-generated notes
         id: copilot_read
