@@ -129,8 +129,13 @@ jobs:
         id: detect_tag
         run: |
           git fetch --tags
-          LAST_TAG=$(git describe --tags --abbrev=0 $(git rev-list --tags --max-count=1) 2>/dev/null || echo "")
-          echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
+          if [ "$NUM_TAGS" -ge 2 ]; then
+            # Get the commit for the second-most-recent tag and describe it to obtain the tag name
+            PREV_TAG=$(git describe --tags --abbrev=0 $(git rev-list --tags --max-count=2 | tail -n1) 2>/dev/null || echo "")
+          else
+            PREV_TAG=""
+          fi
+          echo "last_tag=$PREV_TAG" >> $GITHUB_OUTPUT
 
       - name: Set up Node.js environment
         uses: actions/setup-node@v4
