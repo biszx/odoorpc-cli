@@ -1,4 +1,4 @@
-name: Build Windows installer and publish release
+name: Release OdooRPC CLI
 
 on:
   push:
