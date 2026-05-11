@@ -31,30 +31,20 @@ jobs:
         run: |
           pyinstaller --onefile --name odoorpc_cli odoorpc_cli/cli.py
 
-      - name: Set version from tag
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: pwsh
-        run: |
-          Add-Content -Path $env:GITHUB_ENV -Value "VERSION=${{ github.ref_name }}"
-
       - name: Install Inno Setup (chocolatey)
         run: choco install innosetup -y
 
       - name: Build installer with Inno Setup
         run: |
           echo Building installer using Inno Setup
-          if ($env:VERSION) { $v = $env:VERSION } else { $v = '0.0.0' }
-          Write-Host "ISCC command: C:\Program Files (x86)\Inno Setup 6\ISCC.exe -DMyAppVersion=$v packaging\\windows\\odoorpc_cli.iss"
-          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' -DMyAppVersion=$v 'packaging\\windows\\odoorpc_cli.iss'
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' 'packaging\\windows\\odoorpc_cli.iss'
       - name: Prepare release installer
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          $v = $env:VERSION
-          if (-not $v) { $v = '0.0.0' }
           New-Item -ItemType Directory -Force -Path release_artifacts
           $installer = Get-ChildItem -Path Output*, dist -Recurse -Filter *.exe | Select-Object -First 1
           if ($null -eq $installer) { Write-Error "Installer not found"; exit 1 }
-          Copy-Item $installer.FullName -Destination (Join-Path $PWD "release_artifacts\odoorpc-cli-setup-$v.exe")
+          Copy-Item $installer.FullName -Destination (Join-Path $PWD "release_artifacts\odoorpc-cli-setup.exe")
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v7
@@ -115,20 +105,6 @@ jobs:
         with:
           name: release-installers
           path: release_artifacts
-
-      - name: Find downloaded release installer
-        id: find_installer
-        run: |
-          set -e
-          installer=$(find release_artifacts -type f -name "odoorpc-cli-setup-*.exe" | head -n 1)
-          if [ -z "$installer" ]; then
-            echo "Installer file not found in release_artifacts"
-            find release_artifacts -type f | sed 's#^#FOUND: #'
-            exit 1
-          fi
-          installer_name=$(basename "$installer")
-          echo "installer_path=$installer" >> $GITHUB_OUTPUT
-          echo "installer_name=$installer_name" >> $GITHUB_OUTPUT
 
       - name: Checkout repository (full)
         uses: actions/checkout@v6
@@ -198,6 +174,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_installer.outputs.installer_path }}
-          asset_name: ${{ steps.find_installer.outputs.installer_name }}
+          asset_path: release_artifacts/odoorpc-cli-setup.exe
+          asset_name: odoorpc-cli-setup-${{ github.ref_name }}.exe
           asset_content_type: application/octet-stream
