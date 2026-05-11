@@ -106,6 +106,19 @@ jobs:
           name: release-installers
           path: release_artifacts
 
+      - name: Find downloaded release installer
+        id: find_installer
+        run: |
+          set -e
+          # search for the static installer filename anywhere under release_artifacts
+          installer=$(find release_artifacts -type f -name "odoorpc-cli-setup*.exe" | head -n 1)
+          if [ -z "$installer" ]; then
+            echo "Installer file not found in release_artifacts"
+            find release_artifacts -type f | sed 's#^#FOUND: #'
+            exit 1
+          fi
+          echo "installer_path=$installer" >> $GITHUB_OUTPUT
+
       - name: Checkout repository (full)
         uses: actions/checkout@v6
         with:
@@ -174,6 +187,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release_artifacts/odoorpc-cli-setup.exe
+          asset_path: ${{ steps.find_installer.outputs.installer_path }}
           asset_name: odoorpc-cli-setup-${{ github.ref_name }}.exe
           asset_content_type: application/octet-stream
