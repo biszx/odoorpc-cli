@@ -5,7 +5,7 @@
 #define MyAppVersion "0.0.0"
 #define MyAppPublisher "biszx"
 #define MyAppURL "https://github.com/biszx/odoorpc_cli"
-#define OutputBaseFilename MyAppName + "-" + MyAppVersion + "-setup"
+#define OutputBaseFilename "odoorpc-cli-setup"
 
 [Setup]
 AppName={#MyAppName}
