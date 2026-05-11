@@ -128,7 +128,7 @@ jobs:
       - name: Detect last tag
         id: detect_tag
         run: |
-          git fetch --tags
+          NUM_TAGS=$(git ls-remote --tags origin | wc -l | tr -d ' \n')
           if [ "$NUM_TAGS" -ge 2 ]; then
             # Get the commit for the second-most-recent tag and describe it to obtain the tag name
             PREV_TAG=$(git describe --tags --abbrev=0 $(git rev-list --tags --max-count=2 | tail -n1) 2>/dev/null || echo "")
