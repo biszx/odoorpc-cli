@@ -1,5 +1,3 @@
-# Release {{VERSION}}
-
 ## Summary
 
 {{SUMMARY}}
