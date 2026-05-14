@@ -8,7 +8,7 @@ from odoorpc_cli.tools.click_types import JSON
 @click.command("write")
 @click.argument("model")
 @click.option(
-    "--id",
+    "--ids",
     "ids",
     help="Comma-separated id(s) to update",
 )
@@ -37,7 +37,7 @@ def write(
 ) -> None:
     """
     Update records in `model`.
-    Provide either `--id` or `--domain` to search for records to update.
+    Provide either `--ids` or `--domain` to search for records to update.
     When both are provided, the union of ids will be used.
     """
     client = ctx.obj.get("odoo")
