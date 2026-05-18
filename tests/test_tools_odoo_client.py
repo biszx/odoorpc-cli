@@ -138,11 +138,11 @@ def test_connect_fetches_user_and_search_read(monkeypatch):
     import odoorpc_cli.tools.odoo_client as OC
 
     class FakeUserModel:
-        def search_read(self, domain, fields=None, limit=None):
+        def search_read(self, domain, fields=None, order=None, offset=None, limit=None):
             return [{"id": 42, "name": "Tester"}]
 
     class FakeModelM:
-        def search_read(self, domain, fields=None, limit=None):
+        def search_read(self, domain, fields=None, order=None, offset=None, limit=None):
             return [{"id": 7, "name": "ModelName"}]
 
     class FakeODOO:

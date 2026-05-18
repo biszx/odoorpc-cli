@@ -48,7 +48,7 @@ def write(
         id_list.extend([int(x.strip()) for x in ids.split(",")])
     if domain is not None:
         # resolve ids from domain using search_read
-        found = client.search_read(model, domain, ["id"], limit)
+        found = client.search_read(model, domain, ["id"], limit=limit)
         id_list.extend([r["id"] for r in found])
 
     # deduplicate and normalize
