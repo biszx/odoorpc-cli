@@ -23,7 +23,7 @@ def test_write_updates_record():
         [
             "write",
             "res.partner",
-            "--id",
+            "--ids",
             str(rid),
             "--value",
             json.dumps({"name": "UpdatedName"}),

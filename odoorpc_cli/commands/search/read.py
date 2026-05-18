@@ -30,13 +30,25 @@ from odoorpc_cli.tools.click_types import JSON
     help="Order the results by field, e.g. 'name asc' or 'id desc'. Defaults to None (no ordering).",
 )
 @click.option(
+    "--offset",
+    type=int,
+    default=0,
+    help="Offset for pagination. Defaults to 0 (start from beginning).",
+)
+@click.option(
     "--limit",
     type=int,
     help="Limit the number of records returned. Defaults to None (no limit).",
 )
 @click.pass_context
 def search_read(
-    ctx, model: str, domain, fields: str, order: str | None, limit: int | None
+    ctx,
+    model: str,
+    domain,
+    fields: str,
+    order: str | None,
+    offset: int,
+    limit: int | None,
 ):
     """Search and read records from `model`"""
     client = ctx.obj.get("odoo")
@@ -47,5 +59,7 @@ def search_read(
     else:
         fields_arg = [f.strip() for f in fields.split(",")]
 
-    res = client.search_read(model, domain, fields_arg, order=order, limit=limit)
+    res = client.search_read(
+        model, domain, fields_arg, order=order, offset=offset, limit=limit
+    )
     click.echo(json.dumps(res, indent=2, ensure_ascii=False))

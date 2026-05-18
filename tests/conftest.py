@@ -46,7 +46,7 @@ class FakeClient:
                 return False
         return True
 
-    def search_read(self, model, domain, fields, order=None, limit=None):  # noqa: C901
+    def search_read(self, model, domain, fields, order=None, offset=0, limit=None):  # noqa: C901
         records = list(self._store.get(model, {}).values())
         # Very small domain support: [['id', '=', value]] and simple AND list
         if domain:
@@ -91,6 +91,10 @@ class FakeClient:
                 lim = None
             if lim is not None:
                 records = records[:lim]
+
+        # Apply offset if specified
+        if offset > 0:
+            records = records[offset:]
 
         # Apply ordering if specified
         if order:
