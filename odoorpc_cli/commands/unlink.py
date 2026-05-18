@@ -40,7 +40,7 @@ def unlink(
         id_list.extend([int(x.strip()) for x in ids.split(",")])
 
     if domain is not None:
-        found = client.search_read(model, domain, ["id"], limit)
+        found = client.search_read(model, domain, ["id"], limit=limit)
         id_list.extend([r["id"] for r in found])
 
     id_list = sorted(set(id_list))

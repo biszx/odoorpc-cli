@@ -74,10 +74,15 @@ class OdooClient:
         return m.fields_get()
 
     def search_read(
-        self, model: str, domain: list[Any], fields: list[str], limit: int | None = None
+        self,
+        model: str,
+        domain: list[Any],
+        fields: list[str],
+        order: str | None = None,
+        limit: int | None = None,
     ):
         m = self.odoo.env[model]
-        return m.search_read(domain, fields=fields, limit=limit)
+        return m.search_read(domain, fields=fields, order=order, limit=limit)
 
     def search_count(self, model: str, domain: list[Any]):
         m = self.odoo.env[model]

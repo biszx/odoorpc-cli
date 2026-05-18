@@ -46,7 +46,7 @@ class FakeClient:
                 return False
         return True
 
-    def search_read(self, model, domain, fields, limit):  # noqa: C901
+    def search_read(self, model, domain, fields, order=None, limit=None):  # noqa: C901
         records = list(self._store.get(model, {}).values())
         # Very small domain support: [['id', '=', value]] and simple AND list
         if domain:
@@ -91,6 +91,24 @@ class FakeClient:
                 lim = None
             if lim is not None:
                 records = records[:lim]
+
+        # Apply ordering if specified
+        if order:
+            if " " in order:
+                field, direction = order.rsplit(" ", 1)
+                direction = direction.lower()
+                if direction in ["asc", "desc"]:
+                    reverse = direction == "desc"
+                    records = sorted(
+                        records, key=lambda x: x.get(field, ""), reverse=reverse
+                    )
+                else:
+                    # Invalid direction, just sort by field (ascending)
+                    records = sorted(records, key=lambda x: x.get(field, ""))
+            else:
+                # Just field name, sort ascending
+                records = sorted(records, key=lambda x: x.get(order, ""))
+
         # If there are no records for common demo models and no domain was
         # provided, return a small default so existing tests that expect a
         # non-empty result continue to pass. Do NOT return this fallback
