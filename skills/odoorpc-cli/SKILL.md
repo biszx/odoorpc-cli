@@ -86,8 +86,18 @@ Search for records matching a domain and return selected fields.
 ### Syntax
 
 ```bash
-odoo search read <model> --domain '<domain-json>' --fields <field1,field2> --limit N
+odoo search read <model> --domain '<domain-json>' --fields <field1,field2> --order '<field dir>' --offset N --limit N
 ```
+
+### Options
+
+| Option     | Default | Description                                     |
+| ---------- | ------- | ----------------------------------------------- |
+| `--domain` | `[]`    | JSON array Odoo domain filter                   |
+| `--fields` | `all`   | Comma-separated fields; `all` returns only `id` |
+| `--order`  | None    | Sort expression, e.g. `name asc` or `id desc`   |
+| `--offset` | `0`     | Number of records to skip (for pagination)      |
+| `--limit`  | None    | Maximum number of records to return             |
 
 ### Example
 
@@ -95,7 +105,19 @@ odoo search read <model> --domain '<domain-json>' --fields <field1,field2> --lim
 odoo search read res.partner \
   --domain '[["name", "ilike", "Acme"]]' \
   --fields name,email \
+  --order 'name asc' \
+  --offset 0 \
   --limit 10
+```
+
+#### Paginate through results
+
+```bash
+# Page 1
+odoo search read res.partner --fields name,email --limit 20 --offset 0
+
+# Page 2
+odoo search read res.partner --fields name,email --limit 20 --offset 20
 ```
 
 ## Count Records
@@ -175,7 +197,7 @@ Update existing records by ID or domain.
 ### Syntax
 
 ```bash
-odoo write <model> --id '<id[,id...]>' --value '<json-object>'
+odoo write <model> --ids '<id[,id...]>' --value '<json-object>'
 odoo write <model> --domain '<domain-json>' --value '<json-object>' --limit N
 ```
 
@@ -185,7 +207,7 @@ Update a single record by id:
 
 ```bash
 odoo write res.partner \
-  --id '42' \
+  --ids '42' \
   --value '{"name": "Renamed Co"}'
 ```
 
@@ -193,7 +215,7 @@ Update multiple records by id:
 
 ```bash
 odoo write res.partner \
-  --id '41,42' \
+  --ids '41,42' \
   --value '{"active": false}'
 ```
 
@@ -208,7 +230,7 @@ odoo write res.partner \
 
 ### Notes
 
-- `--id` accepts comma-separated IDs
+- `--ids` accepts comma-separated IDs
 - `--value` must be a JSON object
 - `--domain` accepts a JSON array (Odoo domain) and is resolved to matching IDs; use `--limit` to bound results when using `--domain`. When both `--id` and `--domain` are provided, the union of IDs will be used.
 
@@ -401,7 +423,7 @@ odoo create res.partner \
 
 # Update a record
 odoo write res.partner \
-  --id '42' \
+  --ids '42' \
   --value '{"active": false}'
 
 # Delete a record
