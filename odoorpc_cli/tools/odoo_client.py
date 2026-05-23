@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import os
+import pickle
 import urllib.parse
 from typing import Any
 
+import click
 import odoorpc
+import odoorpc.env
+import odoorpc.error
 
 from ..settings import Settings
 
@@ -25,18 +30,96 @@ class OdooClient:
         self.hostname = parsed.hostname or "localhost"
         self.port = parsed.port
         self.is_https = parsed.scheme == "https"
-        self._connect()
 
-    def _connect(self) -> None:
+        if not self._try_load_session():
+            self._connect()
+            self._save_session()
+
+    # ------------------------------------------------------------------
+    # Pickle support: odoorpc's urllib opener is not picklable, so we
+    # serialise only the minimal state needed to reconstruct it.
+    # ------------------------------------------------------------------
+
+    def __getstate__(self) -> dict:
+        state = self.__dict__.copy()
+        odoo = state.pop("odoo", None)
+        if odoo is not None:
+            state["_odoo_cache"] = {
+                "uid": self.uid,
+                "context": dict(odoo.env.context),
+                "version": odoo.version,
+            }
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        odoo_cache = state.pop("_odoo_cache", None)
+        self.__dict__.update(state)
+        if odoo_cache:
+            self._restore_odoo(odoo_cache)
+
+    def _restore_odoo(self, odoo_cache: dict) -> None:
+        """Reconstruct odoorpc.ODOO from cached state — no network calls."""
         protocol = "jsonrpc+ssl" if self.is_https else "jsonrpc"
         port = self.port or (443 if self.is_https else 80)
+        # Passing version skips the /web/webclient/version_info detection call
         self.odoo = odoorpc.ODOO(
-            self.hostname, protocol=protocol, port=port, timeout=self.timeout
+            self.hostname, protocol=protocol, port=port, timeout=self.timeout,
+            version=odoo_cache["version"],
         )
-        # login will raise on auth failure
-        self.odoo.login(self.db, self.username, self.password)
+        self.odoo._env = odoorpc.env.Environment(
+            self.odoo, self.db, odoo_cache["uid"], odoo_cache["context"]
+        )
+        self.odoo._login = self.username
+        self.odoo._password = self.password
 
-        # fetch user info
+    # ------------------------------------------------------------------
+    # Session cache: store the whole OdooClient object as a pickle
+    # ------------------------------------------------------------------
+
+    def _session_key(self) -> str:
+        port = self.port or (443 if self.is_https else 80)
+        return f"{self.db}_{self.username}_{self.hostname}_{port}"
+
+    def _try_load_session(self) -> bool:
+        """Restore from pickle cache with zero RPC calls. Returns True on success."""
+        try:
+            with open(Settings.SESSION_CACHE_PATH, "rb") as f:
+                cache: dict = pickle.load(f)
+            cached: OdooClient = cache.get(self._session_key())
+            if cached is None:
+                return False
+            # cached.odoo was already reconstructed by __setstate__ during load;
+            # overwrite credentials with the current config values.
+            self.odoo = cached.odoo
+            self.odoo._password = self.password
+            self.odoo._login = self.username
+            self.uid = cached.uid
+            self.user = cached.user
+            return True
+        except Exception:
+            return False
+
+    def _save_session(self) -> None:
+        Settings.ensure_dir()
+        cache: dict = {}
+        try:
+            with open(Settings.SESSION_CACHE_PATH, "rb") as f:
+                cache = pickle.load(f)
+        except Exception:
+            pass
+        cache[self._session_key()] = self
+        try:
+            with open(Settings.SESSION_CACHE_PATH, "wb") as f:
+                pickle.dump(cache, f)
+            os.chmod(Settings.SESSION_CACHE_PATH, 0o600)
+        except Exception as exc:
+            click.echo(f"Warning: could not cache session ({exc})", err=True)
+
+    # ------------------------------------------------------------------
+    # Auth helpers
+    # ------------------------------------------------------------------
+
+    def _fetch_user(self) -> None:
         user_model = self.odoo.env["res.users"]
         self.user = user_model.search_read(
             [("login", "=", self.username)],
@@ -55,23 +138,68 @@ class OdooClient:
         )[0]
         self.uid = self.user["id"]
 
+    def _connect(self) -> None:
+        protocol = "jsonrpc+ssl" if self.is_https else "jsonrpc"
+        port = self.port or (443 if self.is_https else 80)
+        self.odoo = odoorpc.ODOO(
+            self.hostname, protocol=protocol, port=port, timeout=self.timeout
+        )
+        self.odoo.login(self.db, self.username, self.password)
+        self._fetch_user()
+
+    def _is_auth_error(self, exc: Exception) -> bool:
+        if isinstance(exc, odoorpc.error.InternalError):
+            return True
+        if isinstance(exc, odoorpc.error.RPCError):
+            msg = str(exc).lower()
+            return any(k in msg for k in ("session expired", "access denied", "not logged"))
+        return False
+
+    def _call_with_retry(self, func):
+        """Call func(); on auth error re-login once then retry."""
+        try:
+            return func()
+        except Exception as exc:
+            if not self._is_auth_error(exc):
+                raise
+            try:
+                self._connect()
+                self._save_session()
+            except Exception as login_exc:
+                raise SystemExit(
+                    f"Authentication failed. Run 'odoo auth login' to re-authenticate. ({login_exc})"
+                ) from login_exc
+            try:
+                return func()
+            except Exception:
+                raise SystemExit(
+                    "Session refreshed but the request still failed. "
+                    "Run 'odoo auth login' to re-authenticate."
+                )
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
     def get_current_user(self) -> dict:
         """Return the current authenticated user's information."""
         return getattr(self, "user", {})
 
     def model_search(self, query: str) -> dict:
-        IrModel = self.odoo.env["ir.model"]
-        domain = ["|", ("model", "like", query), ("name", "like", query)]
-        models = (
-            IrModel.search_read(domain, ["model", "name"])
-            if hasattr(IrModel, "search_read")
-            else []
-        )
-        return {"length": len(models), "models": models}
+        def _call():
+            IrModel = self.odoo.env["ir.model"]
+            domain = ["|", ("model", "like", query), ("name", "like", query)]
+            models = (
+                IrModel.search_read(domain, ["model", "name"])
+                if hasattr(IrModel, "search_read")
+                else []
+            )
+            return {"length": len(models), "models": models}
+
+        return self._call_with_retry(_call)
 
     def model_field(self, model: str):
-        m = self.odoo.env[model]
-        return m.fields_get()
+        return self._call_with_retry(lambda: self.odoo.env[model].fields_get())
 
     def search_read(
         self,
@@ -82,29 +210,30 @@ class OdooClient:
         offset: int = 0,
         limit: int | None = None,
     ):
-        m = self.odoo.env[model]
-        return m.search_read(
-            domain, fields=fields, order=order, offset=offset, limit=limit
+        return self._call_with_retry(
+            lambda: self.odoo.env[model].search_read(
+                domain, fields=fields, order=order, offset=offset, limit=limit
+            )
         )
 
     def search_count(self, model: str, domain: list[Any]):
-        m = self.odoo.env[model]
-        try:
-            return m.search_count(domain)
-        except Exception:
-            return len(m.search(domain))
+        def _call():
+            m = self.odoo.env[model]
+            try:
+                return m.search_count(domain)
+            except Exception:
+                return len(m.search(domain))
+
+        return self._call_with_retry(_call)
 
     def create(self, model: str, vals: list[dict]):
-        m = self.odoo.env[model]
-        return m.create(vals)
+        return self._call_with_retry(lambda: self.odoo.env[model].create(vals))
 
     def write(self, model: str, ids: list[int], vals: dict):
-        m = self.odoo.env[model]
-        return m.write(ids, vals)
+        return self._call_with_retry(lambda: self.odoo.env[model].write(ids, vals))
 
     def unlink(self, model: str, ids: list[int]):
-        m = self.odoo.env[model]
-        return m.unlink(ids)
+        return self._call_with_retry(lambda: self.odoo.env[model].unlink(ids))
 
     def execute_method(
         self,
@@ -113,11 +242,14 @@ class OdooClient:
         args: list | None = None,
         kwargs: dict | None = None,
     ):
-        m = self.odoo.env[model]
-        func = getattr(m, method)
-        if kwargs:
-            return func(*(args or []), **(kwargs or {}))
-        return func(*(args or []))
+        def _call():
+            m = self.odoo.env[model]
+            func = getattr(m, method)
+            if kwargs:
+                return func(*(args or []), **(kwargs or {}))
+            return func(*(args or []))
+
+        return self._call_with_retry(_call)
 
     @classmethod
     def from_config(cls):
