@@ -23,7 +23,7 @@ def _is_auth_error(exc: Exception) -> bool:
     return False
 
 
-def _call_with_retry(method):
+def _with_reauth(method):
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
         try:
@@ -156,7 +156,7 @@ class OdooClient:
     def get_current_user(self) -> dict:
         return getattr(self, "user", {})
 
-    @_call_with_retry
+    @_with_reauth
     def model_search(self, query: str) -> dict:
         IrModel = self.odoo.env["ir.model"]
         domain = ["|", ("model", "like", query), ("name", "like", query)]
@@ -167,11 +167,11 @@ class OdooClient:
         )
         return {"length": len(models), "models": models}
 
-    @_call_with_retry
+    @_with_reauth
     def model_field(self, model: str):
         return self.odoo.env[model].fields_get()
 
-    @_call_with_retry
+    @_with_reauth
     def search_read(
         self,
         model: str,
@@ -185,7 +185,7 @@ class OdooClient:
             domain, fields=fields, order=order, offset=offset, limit=limit
         )
 
-    @_call_with_retry
+    @_with_reauth
     def search_count(self, model: str, domain: list[Any]):
         m = self.odoo.env[model]
         try:
@@ -193,19 +193,19 @@ class OdooClient:
         except Exception:
             return len(m.search(domain))
 
-    @_call_with_retry
+    @_with_reauth
     def create(self, model: str, vals: list[dict]):
         return self.odoo.env[model].create(vals)
 
-    @_call_with_retry
+    @_with_reauth
     def write(self, model: str, ids: list[int], vals: dict):
         return self.odoo.env[model].write(ids, vals)
 
-    @_call_with_retry
+    @_with_reauth
     def unlink(self, model: str, ids: list[int]):
         return self.odoo.env[model].unlink(ids)
 
-    @_call_with_retry
+    @_with_reauth
     def execute_method(
         self,
         model: str,
