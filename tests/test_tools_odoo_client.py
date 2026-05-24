@@ -289,7 +289,7 @@ def test_save_session_writes_pickle_and_sets_permissions(tmp_path, monkeypatch):
     assert restored.uid == 3
 
 
-def test_getstate_excludes_odoo_object():
+def test_getstate_excludes_odoo_and_password():
     c = _make_client_stub(None)
     c.uid = 5
     c.user = {"id": 5}
@@ -299,6 +299,7 @@ def test_getstate_excludes_odoo_object():
     )
     state = c.__getstate__()
     assert "odoo" not in state
+    assert "password" not in state          # plaintext password never persisted
     assert state["_odoo_cache"]["uid"] == 5
     assert state["_odoo_cache"]["version"] == "17.0"
 

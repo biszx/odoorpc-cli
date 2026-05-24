@@ -42,6 +42,8 @@ class OdooClient:
 
     def __getstate__(self) -> dict:
         state = self.__dict__.copy()
+        # Never persist the plaintext password — it's reloaded from config on restore
+        state.pop("password", None)
         odoo = state.pop("odoo", None)
         if odoo is not None:
             state["_odoo_cache"] = {
@@ -52,16 +54,13 @@ class OdooClient:
         return state
 
     def __setstate__(self, state: dict) -> None:
-        odoo_cache = state.pop("_odoo_cache", None)
+        self._odoo_cache = state.pop("_odoo_cache", None)
         self.__dict__.update(state)
-        if odoo_cache:
-            self._restore_odoo(odoo_cache)
 
-    def _restore_odoo(self, odoo_cache: dict) -> None:
-        """Reconstruct odoorpc.ODOO from cached state — no network calls."""
+    def _restore_odoo(self) -> None:
+        odoo_cache = self._odoo_cache
         protocol = "jsonrpc+ssl" if self.is_https else "jsonrpc"
         port = self.port or (443 if self.is_https else 80)
-        # Passing version skips the /web/webclient/version_info detection call
         self.odoo = odoorpc.ODOO(
             self.hostname, protocol=protocol, port=port, timeout=self.timeout,
             version=odoo_cache["version"],
@@ -88,8 +87,8 @@ class OdooClient:
             cached: OdooClient = cache.get(self._session_key())
             if cached is None:
                 return False
-            # cached.odoo was already reconstructed by __setstate__ during load;
-            # overwrite credentials with the current config values.
+            cached.password = self.password
+            cached._restore_odoo()
             self.odoo = cached.odoo
             self.odoo._password = self.password
             self.odoo._login = self.username
