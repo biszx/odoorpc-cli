@@ -9,6 +9,8 @@ class Settings:
     CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
     KEY_PATH = os.path.join(CONFIG_DIR, "machine.key")
     SESSION_CACHE_PATH = os.path.join(CONFIG_DIR, "session_cache.pkl")
+    UPDATE_CHECK_PATH = os.path.join(CONFIG_DIR, "update_check.json")
+    UPDATE_CHECK_INTERVAL = 86400  # 24 hours in seconds
 
     @classmethod
     def ensure_dir(cls) -> None:
