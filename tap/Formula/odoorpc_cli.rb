@@ -3,7 +3,7 @@ class OdoorpcCli < Formula
 
   desc "Command-line tool for Odoo RPC"
   homepage "https://github.com/biszx/odoorpc_cli"
-  version "0.1.0"
+  version "1.2.1"
   url "https://files.pythonhosted.org/packages/source/o/odoorpc_cli/odoorpc_cli-#{version}.tar.gz"
   sha256 :no_check
 
