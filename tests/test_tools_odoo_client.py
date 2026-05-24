@@ -304,36 +304,36 @@ def test_getstate_excludes_odoo_and_password():
     assert state["_odoo_cache"]["version"] == "17.0"
 
 
-def test_is_auth_error_internal_error():
-    from odoorpc_cli.tools.odoo_client import _is_auth_error
-    assert _is_auth_error(odoorpc.error.InternalError("Not logged!")) is True
+def testis_auth_error_internal_error():
+    from odoorpc_cli.tools.odoo_client import is_auth_error
+    assert is_auth_error(odoorpc.error.InternalError("Not logged!")) is True
 
 
-def test_is_auth_error_rpc_session_expired():
-    from odoorpc_cli.tools.odoo_client import _is_auth_error
-    assert _is_auth_error(odoorpc.error.RPCError("Odoo session expired")) is True
+def testis_auth_error_rpc_session_expired():
+    from odoorpc_cli.tools.odoo_client import is_auth_error
+    assert is_auth_error(odoorpc.error.RPCError("Odoo session expired")) is True
 
 
-def test_is_auth_error_non_auth():
-    from odoorpc_cli.tools.odoo_client import _is_auth_error
-    assert _is_auth_error(ValueError("bad domain")) is False
-    assert _is_auth_error(odoorpc.error.RPCError("Field not found")) is False
+def testis_auth_error_non_auth():
+    from odoorpc_cli.tools.odoo_client import is_auth_error
+    assert is_auth_error(ValueError("bad domain")) is False
+    assert is_auth_error(odoorpc.error.RPCError("Field not found")) is False
 
 
-def test_with_reauth_no_error():
-    from odoorpc_cli.tools.odoo_client import _with_reauth
+def testwith_reauth_no_error():
+    from odoorpc_cli.tools.odoo_client import with_reauth
 
-    @_with_reauth
+    @with_reauth
     def dummy(self):
         return 42
 
     assert dummy(_make_client_stub(None)) == 42
 
 
-def test_with_reauth_reraises_non_auth():
-    from odoorpc_cli.tools.odoo_client import _with_reauth
+def testwith_reauth_reraises_non_auth():
+    from odoorpc_cli.tools.odoo_client import with_reauth
 
-    @_with_reauth
+    @with_reauth
     def boom(self):
         raise ValueError("domain error")
 
@@ -341,13 +341,13 @@ def test_with_reauth_reraises_non_auth():
         boom(_make_client_stub(None))
 
 
-def test_with_reauth_relogins_on_auth_error(monkeypatch):
+def testwith_reauth_relogins_on_auth_error(monkeypatch):
     import odoorpc_cli.tools.odoo_client as OC
 
     c = _make_client_stub(monkeypatch)
     calls = {"n": 0}
 
-    @OC._with_reauth
+    @OC.with_reauth
     def flaky(self):
         calls["n"] += 1
         if calls["n"] == 1:
@@ -366,12 +366,12 @@ def test_with_reauth_relogins_on_auth_error(monkeypatch):
     assert reconnect_calls["n"] == 1
 
 
-def test_with_reauth_exits_when_relogin_fails(monkeypatch):
+def testwith_reauth_exits_when_relogin_fails(monkeypatch):
     import odoorpc_cli.tools.odoo_client as OC
 
     c = _make_client_stub(monkeypatch)
 
-    @OC._with_reauth
+    @OC.with_reauth
     def always_auth_error(self):
         raise odoorpc.error.InternalError("Not logged!")
 
