@@ -2,7 +2,7 @@
 name: odoorpc-cli
 description: Handles Odoo JSON-RPC operations through the `odoo` CLI, including authentication, model and field inspection, record querying, CRUD operations, and arbitrary model method execution.
 metadata:
-  version: 1.1.0
+  version: 1.1.1
   category: meta
 ---
 
