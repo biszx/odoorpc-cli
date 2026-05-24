@@ -35,40 +35,12 @@ Verify the installation:
 odoo --version
 ```
 
-## Authentication
-
-Authenticate against your Odoo server before using other commands:
-
-```bash
-odoo auth login
-```
-
-You will be prompted for:
-
-- Host
-- Database
-- Username
-- Password
-
-You may also provide these values through command options.
-
-Check the current authenticated session:
-
-```bash
-odoo auth info
-```
-
-If authentication has not been configured, the CLI will return:
-
-```text
-Not authenticated — run 'odoo auth login' to authenticate
-```
-
 ## Command Overview
 
 | Category       | Command             | Description                         |
 | -------------- | ------------------- | ----------------------------------- |
 | Authentication | `odoo auth login`   | Authenticate with the Odoo server   |
+| Authentication | `odoo auth logout`  | Logout from the Odoo server         |
 | Authentication | `odoo auth info`    | Show current authentication details |
 | Search         | `odoo search read`  | Search and retrieve records         |
 | Search         | `odoo search count` | Count matching records              |
@@ -78,6 +50,26 @@ Not authenticated — run 'odoo auth login' to authenticate
 | Records        | `odoo write`        | Update existing records             |
 | Records        | `odoo unlink`       | Delete records                      |
 | Methods        | `odoo call-method`  | Execute arbitrary model methods     |
+
+## Authentication
+
+Check the current authenticated session:
+
+```bash
+odoo auth info
+```
+
+If authentication has not been configured, ask user for authentication credentials but suggest user to authenticate by himself by running:
+
+```bash
+odoo auth login
+```
+
+If user let you know the credentials, you can also provide them directly as arguments:
+
+```bash
+odoo auth login --host <host> --db <database> --username <username> --password <password>
+```
 
 ## Search and Read Records
 
