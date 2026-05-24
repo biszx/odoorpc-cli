@@ -8,6 +8,7 @@ class Settings:
     CONFIG_DIR = os.path.expanduser("~/.odoo")
     CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
     KEY_PATH = os.path.join(CONFIG_DIR, "machine.key")
+    SESSION_CACHE_PATH = os.path.join(CONFIG_DIR, "session_cache.pkl")
 
     @classmethod
     def ensure_dir(cls) -> None:
