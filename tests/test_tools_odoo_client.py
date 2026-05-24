@@ -305,47 +305,50 @@ def test_getstate_excludes_odoo_and_password():
 
 
 def test_is_auth_error_internal_error():
-    c = _make_client_stub(None)
-    assert c._is_auth_error(odoorpc.error.InternalError("Not logged!")) is True
+    from odoorpc_cli.tools.odoo_client import _is_auth_error
+    assert _is_auth_error(odoorpc.error.InternalError("Not logged!")) is True
 
 
 def test_is_auth_error_rpc_session_expired():
-    c = _make_client_stub(None)
-    assert c._is_auth_error(odoorpc.error.RPCError("Odoo session expired")) is True
+    from odoorpc_cli.tools.odoo_client import _is_auth_error
+    assert _is_auth_error(odoorpc.error.RPCError("Odoo session expired")) is True
 
 
 def test_is_auth_error_non_auth():
-    c = _make_client_stub(None)
-    assert c._is_auth_error(ValueError("bad domain")) is False
-    assert c._is_auth_error(odoorpc.error.RPCError("Field not found")) is False
+    from odoorpc_cli.tools.odoo_client import _is_auth_error
+    assert _is_auth_error(ValueError("bad domain")) is False
+    assert _is_auth_error(odoorpc.error.RPCError("Field not found")) is False
 
 
 def test_call_with_retry_no_error():
-    c = _make_client_stub(None)
-    c.odoo = SimpleNamespace()
-    result = c._call_with_retry(lambda: 42)
-    assert result == 42
+    from odoorpc_cli.tools.odoo_client import _call_with_retry
+
+    @_call_with_retry
+    def dummy(self):
+        return 42
+
+    assert dummy(_make_client_stub(None)) == 42
 
 
 def test_call_with_retry_reraises_non_auth():
-    c = _make_client_stub(None)
-    c.odoo = SimpleNamespace()
+    from odoorpc_cli.tools.odoo_client import _call_with_retry
 
-    def boom():
+    @_call_with_retry
+    def boom(self):
         raise ValueError("domain error")
 
     with pytest.raises(ValueError, match="domain error"):
-        c._call_with_retry(boom)
+        boom(_make_client_stub(None))
 
 
 def test_call_with_retry_relogins_on_auth_error(monkeypatch):
     import odoorpc_cli.tools.odoo_client as OC
 
     c = _make_client_stub(monkeypatch)
-
     calls = {"n": 0}
 
-    def flaky():
+    @OC._call_with_retry
+    def flaky(self):
         calls["n"] += 1
         if calls["n"] == 1:
             raise odoorpc.error.InternalError("Not logged!")
@@ -355,16 +358,11 @@ def test_call_with_retry_relogins_on_auth_error(monkeypatch):
 
     def fake_connect(self):
         reconnect_calls["n"] += 1
-        self.odoo = SimpleNamespace()
-
-    def fake_save(self):
-        pass
 
     monkeypatch.setattr(OC.OdooClient, "_connect", fake_connect)
-    monkeypatch.setattr(OC.OdooClient, "_save_session", fake_save)
+    monkeypatch.setattr(OC.OdooClient, "_save_session", lambda self: None)
 
-    result = c._call_with_retry(flaky)
-    assert result == "ok"
+    assert flaky(c) == "ok"
     assert reconnect_calls["n"] == 1
 
 
@@ -373,13 +371,11 @@ def test_call_with_retry_exits_when_relogin_fails(monkeypatch):
 
     c = _make_client_stub(monkeypatch)
 
-    def always_auth_error():
+    @OC._call_with_retry
+    def always_auth_error(self):
         raise odoorpc.error.InternalError("Not logged!")
 
-    def bad_connect(self):
-        raise RuntimeError("wrong password")
-
-    monkeypatch.setattr(OC.OdooClient, "_connect", bad_connect)
+    monkeypatch.setattr(OC.OdooClient, "_connect", lambda self: (_ for _ in ()).throw(RuntimeError("wrong password")))
 
     with pytest.raises(SystemExit, match="re-authenticate"):
-        c._call_with_retry(always_auth_error)
+        always_auth_error(c)

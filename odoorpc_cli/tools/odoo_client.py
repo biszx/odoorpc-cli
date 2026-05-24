@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import os
 import pickle
 import urllib.parse
@@ -11,6 +12,40 @@ import odoorpc.env
 import odoorpc.error
 
 from ..settings import Settings
+
+
+def _is_auth_error(exc: Exception) -> bool:
+    if isinstance(exc, odoorpc.error.InternalError):
+        return True
+    if isinstance(exc, odoorpc.error.RPCError):
+        msg = str(exc).lower()
+        return any(k in msg for k in ("session expired", "access denied", "not logged"))
+    return False
+
+
+def _call_with_retry(method):
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        try:
+            return method(self, *args, **kwargs)
+        except Exception as exc:
+            if not _is_auth_error(exc):
+                raise
+            try:
+                self._connect()
+                self._save_session()
+            except Exception as login_exc:
+                raise SystemExit(
+                    f"Authentication failed. Run 'odoo auth login' to re-authenticate. ({login_exc})"
+                ) from login_exc
+            try:
+                return method(self, *args, **kwargs)
+            except Exception:
+                raise SystemExit(
+                    "Session refreshed but the request still failed. "
+                    "Run 'odoo auth login' to re-authenticate."
+                )
+    return wrapper
 
 
 class OdooClient:
@@ -118,54 +153,25 @@ class OdooClient:
         self.odoo.login(self.db, self.username, self.password)
         self._fetch_user()
 
-    def _is_auth_error(self, exc: Exception) -> bool:
-        if isinstance(exc, odoorpc.error.InternalError):
-            return True
-        if isinstance(exc, odoorpc.error.RPCError):
-            msg = str(exc).lower()
-            return any(k in msg for k in ("session expired", "access denied", "not logged"))
-        return False
-
-    def _call_with_retry(self, func):
-        try:
-            return func()
-        except Exception as exc:
-            if not self._is_auth_error(exc):
-                raise
-            try:
-                self._connect()
-                self._save_session()
-            except Exception as login_exc:
-                raise SystemExit(
-                    f"Authentication failed. Run 'odoo auth login' to re-authenticate. ({login_exc})"
-                ) from login_exc
-            try:
-                return func()
-            except Exception:
-                raise SystemExit(
-                    "Session refreshed but the request still failed. "
-                    "Run 'odoo auth login' to re-authenticate."
-                )
-
     def get_current_user(self) -> dict:
         return getattr(self, "user", {})
 
+    @_call_with_retry
     def model_search(self, query: str) -> dict:
-        def _call():
-            IrModel = self.odoo.env["ir.model"]
-            domain = ["|", ("model", "like", query), ("name", "like", query)]
-            models = (
-                IrModel.search_read(domain, ["model", "name"])
-                if hasattr(IrModel, "search_read")
-                else []
-            )
-            return {"length": len(models), "models": models}
+        IrModel = self.odoo.env["ir.model"]
+        domain = ["|", ("model", "like", query), ("name", "like", query)]
+        models = (
+            IrModel.search_read(domain, ["model", "name"])
+            if hasattr(IrModel, "search_read")
+            else []
+        )
+        return {"length": len(models), "models": models}
 
-        return self._call_with_retry(_call)
-
+    @_call_with_retry
     def model_field(self, model: str):
-        return self._call_with_retry(lambda: self.odoo.env[model].fields_get())
+        return self.odoo.env[model].fields_get()
 
+    @_call_with_retry
     def search_read(
         self,
         model: str,
@@ -175,31 +181,31 @@ class OdooClient:
         offset: int = 0,
         limit: int | None = None,
     ):
-        return self._call_with_retry(
-            lambda: self.odoo.env[model].search_read(
-                domain, fields=fields, order=order, offset=offset, limit=limit
-            )
+        return self.odoo.env[model].search_read(
+            domain, fields=fields, order=order, offset=offset, limit=limit
         )
 
+    @_call_with_retry
     def search_count(self, model: str, domain: list[Any]):
-        def _call():
-            m = self.odoo.env[model]
-            try:
-                return m.search_count(domain)
-            except Exception:
-                return len(m.search(domain))
+        m = self.odoo.env[model]
+        try:
+            return m.search_count(domain)
+        except Exception:
+            return len(m.search(domain))
 
-        return self._call_with_retry(_call)
-
+    @_call_with_retry
     def create(self, model: str, vals: list[dict]):
-        return self._call_with_retry(lambda: self.odoo.env[model].create(vals))
+        return self.odoo.env[model].create(vals)
 
+    @_call_with_retry
     def write(self, model: str, ids: list[int], vals: dict):
-        return self._call_with_retry(lambda: self.odoo.env[model].write(ids, vals))
+        return self.odoo.env[model].write(ids, vals)
 
+    @_call_with_retry
     def unlink(self, model: str, ids: list[int]):
-        return self._call_with_retry(lambda: self.odoo.env[model].unlink(ids))
+        return self.odoo.env[model].unlink(ids)
 
+    @_call_with_retry
     def execute_method(
         self,
         model: str,
@@ -207,14 +213,11 @@ class OdooClient:
         args: list | None = None,
         kwargs: dict | None = None,
     ):
-        def _call():
-            m = self.odoo.env[model]
-            func = getattr(m, method)
-            if kwargs:
-                return func(*(args or []), **(kwargs or {}))
-            return func(*(args or []))
-
-        return self._call_with_retry(_call)
+        m = self.odoo.env[model]
+        func = getattr(m, method)
+        if kwargs:
+            return func(*(args or []), **(kwargs or {}))
+        return func(*(args or []))
 
     @classmethod
     def from_config(cls):
