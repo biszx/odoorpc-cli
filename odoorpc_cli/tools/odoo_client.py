@@ -14,9 +14,6 @@ from ..settings import Settings
 
 
 class OdooClient:
-    """
-    A thin Odoo JSON-RPC client using odoorpc (mirrors patterns from biszx-odoo-mcp)
-    """
 
     def __init__(
         self, host: str, db: str, username: str, password: str, timeout: int = 30
@@ -35,14 +32,8 @@ class OdooClient:
             self._connect()
             self._save_session()
 
-    # ------------------------------------------------------------------
-    # Pickle support: odoorpc's urllib opener is not picklable, so we
-    # serialise only the minimal state needed to reconstruct it.
-    # ------------------------------------------------------------------
-
     def __getstate__(self) -> dict:
         state = self.__dict__.copy()
-        # Never persist the plaintext password — it's reloaded from config on restore
         state.pop("password", None)
         odoo = state.pop("odoo", None)
         if odoo is not None:
@@ -71,16 +62,11 @@ class OdooClient:
         self.odoo._login = self.username
         self.odoo._password = self.password
 
-    # ------------------------------------------------------------------
-    # Session cache: store the whole OdooClient object as a pickle
-    # ------------------------------------------------------------------
-
     def _session_key(self) -> str:
         port = self.port or (443 if self.is_https else 80)
         return f"{self.db}_{self.username}_{self.hostname}_{port}"
 
     def _try_load_session(self) -> bool:
-        """Restore from pickle cache with zero RPC calls. Returns True on success."""
         try:
             with open(Settings.SESSION_CACHE_PATH, "rb") as f:
                 cache: dict = pickle.load(f)
@@ -114,25 +100,11 @@ class OdooClient:
         except Exception as exc:
             click.echo(f"Warning: could not cache session ({exc})", err=True)
 
-    # ------------------------------------------------------------------
-    # Auth helpers
-    # ------------------------------------------------------------------
-
     def _fetch_user(self) -> None:
         user_model = self.odoo.env["res.users"]
         self.user = user_model.search_read(
             [("login", "=", self.username)],
-            [
-                "id",
-                "name",
-                "login",
-                "email",
-                "lang",
-                "tz",
-                "company_id",
-                "partner_id",
-                "employee_ids",
-            ],
+            ["id", "name", "login", "email", "lang", "tz", "company_id", "partner_id", "employee_ids"],
             limit=1,
         )[0]
         self.uid = self.user["id"]
@@ -155,7 +127,6 @@ class OdooClient:
         return False
 
     def _call_with_retry(self, func):
-        """Call func(); on auth error re-login once then retry."""
         try:
             return func()
         except Exception as exc:
@@ -176,12 +147,7 @@ class OdooClient:
                     "Run 'odoo auth login' to re-authenticate."
                 )
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
     def get_current_user(self) -> dict:
-        """Return the current authenticated user's information."""
         return getattr(self, "user", {})
 
     def model_search(self, query: str) -> dict:
