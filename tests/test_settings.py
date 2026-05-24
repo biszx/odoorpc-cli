@@ -5,7 +5,12 @@ import pytest
 from odoorpc_cli.settings import Settings
 
 
-def test_encrypt_decrypt_roundtrip():
+def test_encrypt_decrypt_roundtrip(tmp_path, monkeypatch):
+    cfg_dir = tmp_path / "cfg_roundtrip"
+    monkeypatch.setattr(Settings, "CONFIG_DIR", str(cfg_dir))
+    monkeypatch.setattr(Settings, "CONFIG_PATH", str(cfg_dir / "config.json"))
+    monkeypatch.setattr(Settings, "KEY_PATH", str(cfg_dir / "machine.key"))
+
     plain = "s3cr3t!"
     token = Settings.encrypt_password(plain)
     assert Settings.decrypt_password(token) == plain
@@ -16,6 +21,7 @@ def test_save_and_load_config(tmp_path, monkeypatch):
     cfg_dir = tmp_path / ".odoo"
     monkeypatch.setattr(Settings, "CONFIG_DIR", str(cfg_dir))
     monkeypatch.setattr(Settings, "CONFIG_PATH", str(cfg_dir / "config.json"))
+    monkeypatch.setattr(Settings, "KEY_PATH", str(cfg_dir / "machine.key"))
 
     host = "https://example.com"
     db = "demo"
@@ -112,3 +118,25 @@ def test_get_or_create_key_swallow_remove_exception(tmp_path, monkeypatch):
 
     # Should not raise; removal error is swallowed
     Settings._get_or_create_key()
+
+
+def test_clear_config(tmp_path, monkeypatch):
+    cfg_dir = tmp_path / "cfg4"
+    monkeypatch.setattr(Settings, "CONFIG_DIR", str(cfg_dir))
+    monkeypatch.setattr(Settings, "CONFIG_PATH", str(cfg_dir / "config.json"))
+    monkeypatch.setattr(Settings, "KEY_PATH", str(cfg_dir / "machine.key"))
+
+    # When config does not exist, clear should not fail
+    assert not os.path.exists(Settings.CONFIG_PATH)
+    Settings.clear()
+
+    # When config exists, clear should delete it
+    Settings.save("host", "db", "user", "pass")
+    assert os.path.isfile(Settings.CONFIG_PATH)
+    Settings.clear()
+    with open(Settings.CONFIG_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    assert data.get("host") is None
+    assert data.get("db") is None
+    assert data.get("username") is None
+    assert data.get("password_encrypted") is None
