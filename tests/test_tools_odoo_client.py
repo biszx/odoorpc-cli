@@ -1,5 +1,9 @@
+import pickle
 import types
 from types import SimpleNamespace
+
+import odoorpc.error
+import pytest
 
 from odoorpc_cli.tools.odoo_client import OdooClient
 
@@ -176,3 +180,202 @@ def test_connect_fetches_user_and_search_read(monkeypatch):
     res = c.search_read("m", [], ["id", "name"], None)
     assert isinstance(res, list)
     assert res[0]["id"] == 7
+
+
+# --- Session caching tests ---
+
+def _make_client_stub(monkeypatch):
+    """Return an OdooClient.__new__ stub with all connection attrs pre-set."""
+    import odoorpc_cli.tools.odoo_client as OC
+
+    c = OC.OdooClient.__new__(OC.OdooClient)
+    c.host = "http://localhost"
+    c.hostname = "localhost"
+    c.db = "testdb"
+    c.username = "admin"
+    c.password = "secret"
+    c.timeout = 30
+    c.port = 8069
+    c.is_https = False
+    return c
+
+
+def _make_cached_client(monkeypatch, uid=7):
+    """Build a stub OdooClient that mimics a post-__setstate__ cached object."""
+    c = _make_client_stub(monkeypatch)
+    c.uid = uid
+    c.user = {"id": uid, "name": "Admin", "login": "admin"}
+    c.odoo = SimpleNamespace(
+        _password="secret",
+        _login="admin",
+        version="17.0",
+        env=SimpleNamespace(context={"lang": "en_US", "tz": "UTC", "uid": uid}),
+    )
+    return c
+
+
+def test_try_load_session_returns_false_when_no_file(tmp_path, monkeypatch):
+    from odoorpc_cli.settings import Settings
+
+    monkeypatch.setattr(Settings, "SESSION_CACHE_PATH", str(tmp_path / "session_cache.pkl"))
+    c = _make_client_stub(monkeypatch)
+    assert c._try_load_session() is False
+
+
+def test_try_load_session_returns_false_on_missing_key(tmp_path, monkeypatch):
+    from odoorpc_cli.settings import Settings
+
+    cache = tmp_path / "session_cache.pkl"
+    cache.write_bytes(pickle.dumps({"other_key": object()}))
+    monkeypatch.setattr(Settings, "SESSION_CACHE_PATH", str(cache))
+
+    c = _make_client_stub(monkeypatch)
+    assert c._try_load_session() is False
+
+
+def test_try_load_session_returns_false_on_bad_pickle(tmp_path, monkeypatch):
+    from odoorpc_cli.settings import Settings
+
+    cache = tmp_path / "session_cache.pkl"
+    cache.write_bytes(b"not a pickle")
+    monkeypatch.setattr(Settings, "SESSION_CACHE_PATH", str(cache))
+
+    c = _make_client_stub(monkeypatch)
+    assert c._try_load_session() is False
+
+
+def test_try_load_session_success(tmp_path, monkeypatch):
+    from odoorpc_cli.settings import Settings
+
+    c = _make_client_stub(monkeypatch)
+    cached = _make_cached_client(monkeypatch, uid=7)
+
+    cache_file = tmp_path / "session_cache.pkl"
+    cache_file.write_bytes(pickle.dumps({c._session_key(): cached}))
+    monkeypatch.setattr(Settings, "SESSION_CACHE_PATH", str(cache_file))
+
+    result = c._try_load_session()
+    assert result is True
+    assert c.uid == 7
+    assert c.user["name"] == "Admin"
+    # credentials always overwritten with the live values from __init__
+    assert c.odoo._password == "secret"
+    assert c.odoo._login == "admin"
+
+
+def test_save_session_writes_pickle_and_sets_permissions(tmp_path, monkeypatch):
+    from odoorpc_cli.settings import Settings
+
+    cache = tmp_path / "session_cache.pkl"
+    monkeypatch.setattr(Settings, "SESSION_CACHE_PATH", str(cache))
+    monkeypatch.setattr(Settings, "CONFIG_DIR", str(tmp_path))
+
+    c = _make_client_stub(monkeypatch)
+    c.uid = 3
+    c.user = {"id": 3, "name": "Test"}
+    c.odoo = SimpleNamespace(
+        version="17.0",
+        env=SimpleNamespace(context={"lang": "en_US", "tz": "UTC", "uid": 3}),
+    )
+
+    c._save_session()
+
+    assert cache.exists()
+    assert oct(cache.stat().st_mode)[-3:] == "600"
+    saved: dict = pickle.loads(cache.read_bytes())
+    key = c._session_key()
+    assert key in saved
+    restored: object = saved[key]
+    assert restored.uid == 3
+
+
+def test_getstate_excludes_odoo_and_password():
+    c = _make_client_stub(None)
+    c.uid = 5
+    c.user = {"id": 5}
+    c.odoo = SimpleNamespace(
+        version="17.0",
+        env=SimpleNamespace(context={"uid": 5}),
+    )
+    state = c.__getstate__()
+    assert "odoo" not in state
+    assert "password" not in state          # plaintext password never persisted
+    assert state["_odoo_cache"]["uid"] == 5
+    assert state["_odoo_cache"]["version"] == "17.0"
+
+
+def testis_auth_error_internal_error():
+    from odoorpc_cli.tools.odoo_client import is_auth_error
+    assert is_auth_error(odoorpc.error.InternalError("Not logged!")) is True
+
+
+def testis_auth_error_rpc_session_expired():
+    from odoorpc_cli.tools.odoo_client import is_auth_error
+    assert is_auth_error(odoorpc.error.RPCError("Odoo session expired")) is True
+
+
+def testis_auth_error_non_auth():
+    from odoorpc_cli.tools.odoo_client import is_auth_error
+    assert is_auth_error(ValueError("bad domain")) is False
+    assert is_auth_error(odoorpc.error.RPCError("Field not found")) is False
+
+
+def testwith_reauth_no_error():
+    from odoorpc_cli.tools.odoo_client import with_reauth
+
+    @with_reauth
+    def dummy(self):
+        return 42
+
+    assert dummy(_make_client_stub(None)) == 42
+
+
+def testwith_reauth_reraises_non_auth():
+    from odoorpc_cli.tools.odoo_client import with_reauth
+
+    @with_reauth
+    def boom(self):
+        raise ValueError("domain error")
+
+    with pytest.raises(ValueError, match="domain error"):
+        boom(_make_client_stub(None))
+
+
+def testwith_reauth_relogins_on_auth_error(monkeypatch):
+    import odoorpc_cli.tools.odoo_client as OC
+
+    c = _make_client_stub(monkeypatch)
+    calls = {"n": 0}
+
+    @OC.with_reauth
+    def flaky(self):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise odoorpc.error.InternalError("Not logged!")
+        return "ok"
+
+    reconnect_calls = {"n": 0}
+
+    def fake_connect(self):
+        reconnect_calls["n"] += 1
+
+    monkeypatch.setattr(OC.OdooClient, "_connect", fake_connect)
+    monkeypatch.setattr(OC.OdooClient, "_save_session", lambda self: None)
+
+    assert flaky(c) == "ok"
+    assert reconnect_calls["n"] == 1
+
+
+def testwith_reauth_exits_when_relogin_fails(monkeypatch):
+    import odoorpc_cli.tools.odoo_client as OC
+
+    c = _make_client_stub(monkeypatch)
+
+    @OC.with_reauth
+    def always_auth_error(self):
+        raise odoorpc.error.InternalError("Not logged!")
+
+    monkeypatch.setattr(OC.OdooClient, "_connect", lambda self: (_ for _ in ()).throw(RuntimeError("wrong password")))
+
+    with pytest.raises(SystemExit, match="re-authenticate"):
+        always_auth_error(c)

@@ -4,6 +4,7 @@ from .create import create
 from .model import model
 from .search import search
 from .unlink import unlink
+from .update import update
 from .write import write
 
 __all__ = [
@@ -13,5 +14,7 @@ __all__ = [
     "model",
     "search",
     "unlink",
+    "update",
     "write",
 ]
+
