@@ -71,7 +71,7 @@ class Settings:
     def load(cls) -> tuple[str, str, str, str]:
         cls.ensure_dir()
         if not os.path.isfile(cls.CONFIG_PATH):
-            raise RuntimeError('Config not found; run "odoo auth" first')
+            raise RuntimeError('Config not found; run "odoo auth login" first')
         with open(cls.CONFIG_PATH, encoding="utf-8") as f:
             conf = json.load(f)
         host = conf.get("host")
@@ -79,6 +79,15 @@ class Settings:
         username = conf.get("username")
         token = conf.get("password_encrypted")
         if token is None:
-            raise RuntimeError("Encrypted password missing from config")
+            raise RuntimeError(
+                "Not authenticated — run 'odoo auth login' to authenticate"
+            )
         password = cls.decrypt_password(token)
         return host, db, username, password
+
+    @classmethod
+    def clear(cls) -> None:
+        """Remove the saved configuration file."""
+        if os.path.isfile(cls.CONFIG_PATH):
+            with open(cls.CONFIG_PATH, "w", encoding="utf-8") as f:
+                json.dump({}, f, indent=2)
