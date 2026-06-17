@@ -4,7 +4,9 @@ import functools
 import os
 import pickle
 import urllib.parse
+from http.cookiejar import CookieJar
 from typing import Any
+from urllib.request import HTTPCookieProcessor, Request, build_opener
 
 import click
 import odoorpc
@@ -12,6 +14,26 @@ import odoorpc.env
 import odoorpc.error
 
 from ..settings import Settings
+
+
+class BrowserOpener:
+    def __init__(self):
+        self._opener = build_opener(HTTPCookieProcessor(CookieJar()))
+
+    def open(self, *args, **kwargs):
+        req = args[0] if args else kwargs.get("request", kwargs.get("url"))
+        if isinstance(req, str):
+            req = Request(req)
+        if not req.headers.get("User-agent"):
+            req.add_header(
+                "User-Agent",
+                (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+            )
+        return self._opener.open(req, **kwargs)
 
 
 def is_auth_error(exc: Exception) -> bool:
@@ -44,12 +66,12 @@ def with_reauth(method):
                 raise SystemExit(
                     "Session refreshed but the request still failed. "
                     "Run 'odoo auth login' to re-authenticate."
-                )
+                ) from None
+
     return wrapper
 
 
 class OdooClient:
-
     def __init__(
         self, host: str, db: str, username: str, password: str, timeout: int = 30
     ):
@@ -88,8 +110,12 @@ class OdooClient:
         protocol = "jsonrpc+ssl" if self.is_https else "jsonrpc"
         port = self.port or (443 if self.is_https else 80)
         self.odoo = odoorpc.ODOO(
-            self.hostname, protocol=protocol, port=port, timeout=self.timeout,
+            self.hostname,
+            protocol=protocol,
+            port=port,
+            timeout=self.timeout,
             version=odoo_cache["version"],
+            opener=BrowserOpener(),
         )
         self.odoo._env = odoorpc.env.Environment(
             self.odoo, self.db, odoo_cache["uid"], odoo_cache["context"]
@@ -139,7 +165,17 @@ class OdooClient:
         user_model = self.odoo.env["res.users"]
         self.user = user_model.search_read(
             [("login", "=", self.username)],
-            ["id", "name", "login", "email", "lang", "tz", "company_id", "partner_id", "employee_ids"],
+            [
+                "id",
+                "name",
+                "login",
+                "email",
+                "lang",
+                "tz",
+                "company_id",
+                "partner_id",
+                "employee_ids",
+            ],
             limit=1,
         )[0]
         self.uid = self.user["id"]
@@ -148,7 +184,11 @@ class OdooClient:
         protocol = "jsonrpc+ssl" if self.is_https else "jsonrpc"
         port = self.port or (443 if self.is_https else 80)
         self.odoo = odoorpc.ODOO(
-            self.hostname, protocol=protocol, port=port, timeout=self.timeout
+            self.hostname,
+            protocol=protocol,
+            port=port,
+            timeout=self.timeout,
+            opener=BrowserOpener(),
         )
         self.odoo.login(self.db, self.username, self.password)
         self._fetch_user()
