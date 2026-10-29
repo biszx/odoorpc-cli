@@ -1,5 +1,6 @@
 import click
 
+from odoorpc_cli.tools import html_images
 from odoorpc_cli.tools.click_types import JSON
 from odoorpc_cli.tools.output import echo_json
 
@@ -41,6 +42,14 @@ def write(
     """
     client = ctx.obj.get("odoo")
     vals = value
+
+    field_meta = client.model_field(model)
+    try:
+        for field in [f for f in vals if html_images.is_html_field(field_meta, f)]:
+            if vals[field]:
+                vals[field] = html_images.inline_images(vals[field])
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
 
     id_list: list[int] = []
     if ids:
