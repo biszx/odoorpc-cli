@@ -47,6 +47,18 @@ Call a custom model method:
 odoo call-method res.partner --method custom_method --args "[]" --kwargs "{}"
 ```
 
+### Images in html fields
+
+A field of type `html` (a task description, a chatter body) can carry a pasted screenshot as base64. Reading such a field writes each image to `~/.cache/odoorpc-cli/images/<sha1>.<ext>` and returns a `file://` path instead of the blob; pass `--raw` to keep the original base64.
+
+```
+odoo search read project.task --fields description
+```
+
+`create` and `write` do the reverse: a `src="file:///path/to/image.png"` inside an html field is replaced with that file's data URI before the record is sent.
+
+Set `$ODOO_IMAGE_DIR` to move the cache. Cached images older than 7 days are pruned on the next read.
+
 ## Contributing
 
 Please open issues and pull requests on the repository. Run tests with `pytest`.

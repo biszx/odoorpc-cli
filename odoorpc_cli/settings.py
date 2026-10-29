@@ -11,6 +11,8 @@ class Settings:
     SESSION_CACHE_PATH = os.path.join(CONFIG_DIR, "session_cache.pkl")
     UPDATE_CHECK_PATH = os.path.join(CONFIG_DIR, "update_check.json")
     UPDATE_CHECK_INTERVAL = 86400  # 24 hours in seconds
+    IMAGE_DIR = os.path.expanduser(os.environ.get("ODOO_IMAGE_DIR", "~/.cache/odoorpc-cli/images"))
+    IMAGE_MAX_AGE_DAYS = 7
 
     @classmethod
     def ensure_dir(cls) -> None:
