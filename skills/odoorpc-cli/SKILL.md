@@ -76,7 +76,7 @@ To update, run 'odoo update' or 'pip install -U odoorpc-cli'.
 
 When you see it, run `odoo update` and wait for it to finish before doing anything else — a command run against a stale CLI may be missing flags or behaving differently from what this skill documents. It updates itself through the install method it detects (pip, pipx, uv, brew), and prints the manual commands if that fails.
 
-No warning means you are current — proceed. Do not run `odoo update` on your own; the check already runs on every command.
+**No warning does not prove you are current.** The check caches its result for 24 hours, so for up to a day after a release the cache still holds the old version and stays silent while the CLI is actually behind. Treat the warning as a definite "update now", and treat silence as "probably current". If a flag documented here is rejected, or behaviour disagrees with this skill, run `odoo update` — it is always safe to run and refreshes the cache either way.
 
 ## Installation
 
