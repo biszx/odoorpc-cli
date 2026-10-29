@@ -491,8 +491,6 @@ Check:
 - Odoo server availability
 - Firewall or VPN restrictions
 
-**Sandbox**: Odoo servers are not in the sandbox allowlist — always run `odoo` commands with `dangerouslyDisableSandbox: true`. Never run them inside the sandbox; any connection error is sandbox interference.
-
 ## Quick Example Workflow
 
 ```bash
