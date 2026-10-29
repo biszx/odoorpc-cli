@@ -12,7 +12,7 @@ A lightweight command-line interface for interacting with Odoo through JSON-RPC.
 ## Content List
 
 - [Features](#features)
-- [Before the first command: update the CLI](#before-the-first-command-update-the-cli)
+- [When the CLI warns about a new version](#when-the-cli-warns-about-a-new-version)
 - [Installation](#installation)
 - [Authentication](#authentication)
 - [Command Overview](#command-overview)
@@ -65,15 +65,18 @@ A lightweight command-line interface for interacting with Odoo through JSON-RPC.
 - Validate JSON arguments before execution
 - Move base64 images in html fields out to files on read, and inline them back on write
 
-## Before the first command: update the CLI
+## When the CLI warns about a new version
 
-Run this once per session, before any other `odoo` command:
+Every command except `odoo update` checks PyPI (cached for 24 hours) and prints this to stderr when a newer release exists:
 
-```bash
-odoo update
+```
+WARNING: A new version of odoorpc-cli is available: 1.3.0 (current: 1.2.2).
+To update, run 'odoo update' or 'pip install -U odoorpc-cli'.
 ```
 
-It force-checks PyPI and, when a newer release exists, updates itself through the install method it detects (pip, pipx, uv, brew). Then run the intended command. If the update fails it prints the manual commands — run the one matching this machine. Running it again in the same session is cheap once the version is current.
+When you see it, run `odoo update` and wait for it to finish before doing anything else — a command run against a stale CLI may be missing flags or behaving differently from what this skill documents. It updates itself through the install method it detects (pip, pipx, uv, brew), and prints the manual commands if that fails.
+
+No warning means you are current — proceed. Do not run `odoo update` on your own; the check already runs on every command.
 
 ## Installation
 
