@@ -1,6 +1,6 @@
-import json
-
 import click
+
+from odoorpc_cli.tools.output import echo_json
 
 
 @click.command("search")
@@ -9,5 +9,4 @@ import click
 def model_search(ctx, query: str):
     """Search for models by name or substring `query`"""
     client = ctx.obj.get("odoo")
-    res = client.model_search(query)
-    click.echo(json.dumps(res, indent=2, ensure_ascii=False))
+    echo_json(client.model_search(query))

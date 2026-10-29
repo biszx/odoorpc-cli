@@ -1,8 +1,7 @@
-import json
-
 import click
 
 from odoorpc_cli.tools.click_types import JSON
+from odoorpc_cli.tools.output import echo_json
 
 
 @click.command("call-method")
@@ -26,4 +25,4 @@ def call_method(ctx, model, method, args, kwargs):
     """Call a model method on `model`"""
     client = ctx.obj.get("odoo")
     res = client.execute_method(model, method, args=args, kwargs=kwargs)
-    click.echo(json.dumps(res, indent=2, ensure_ascii=False))
+    echo_json(res)
