@@ -131,7 +131,11 @@ class FakeClient:
         return True
 
     def model_field(self, model: str):
-        return {"id": 1, "fields": {"name": {"string": "Name"}}}
+        return {
+            "name": {"string": "Title", "type": "char"},
+            "description": {"string": "Description", "type": "html"},
+            "result": {"string": "Expected Result", "type": "html"},
+        }
 
     def model_search(self, query: str):
         return {"length": 1, "models": [{"model": "res.partner", "name": "Partner"}]}

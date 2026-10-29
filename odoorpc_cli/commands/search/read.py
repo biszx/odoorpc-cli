@@ -2,6 +2,7 @@ import json
 
 import click
 
+from odoorpc_cli.tools import html_images
 from odoorpc_cli.tools.click_types import JSON
 
 
@@ -40,6 +41,14 @@ from odoorpc_cli.tools.click_types import JSON
     type=int,
     help="Limit the number of records returned. Defaults to None (no limit).",
 )
+@click.option(
+    "--raw",
+    is_flag=True,
+    help=(
+        "Keep embedded base64 images as-is. Without it, an html field's images are"
+        " written to the image cache and their src replaced with a file:// path."
+    ),
+)
 @click.pass_context
 def search_read(
     ctx,
@@ -49,6 +58,7 @@ def search_read(
     order: str | None,
     offset: int,
     limit: int | None,
+    raw: bool,
 ):
     """Search and read records from `model`"""
     client = ctx.obj.get("odoo")
@@ -62,4 +72,13 @@ def search_read(
     res = client.search_read(
         model, domain, fields_arg, order=order, offset=offset, limit=limit
     )
+    if not raw:
+        field_meta = client.model_field(model)
+        html_fields = [f for f in fields_arg if html_images.is_html_field(field_meta, f)]
+        if html_fields:
+            html_images.prune_cache()
+            for record in res:
+                for field in html_fields:
+                    if record.get(field):
+                        record[field] = html_images.externalize_images(record[field])
     click.echo(json.dumps(res, indent=2, ensure_ascii=False))
