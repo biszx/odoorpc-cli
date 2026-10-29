@@ -1,8 +1,7 @@
-import json
-
 import click
 
 from odoorpc_cli.tools.click_types import JSON
+from odoorpc_cli.tools.output import echo_json
 
 
 @click.command("read")
@@ -62,4 +61,4 @@ def search_read(
     res = client.search_read(
         model, domain, fields_arg, order=order, offset=offset, limit=limit
     )
-    click.echo(json.dumps(res, indent=2, ensure_ascii=False))
+    echo_json(res)

@@ -1,8 +1,7 @@
-import json
-
 import click
 
 from odoorpc_cli.tools.click_types import JSON
+from odoorpc_cli.tools.output import echo_json
 
 
 @click.command("create")
@@ -18,4 +17,4 @@ def create(ctx, model: str, values) -> None:
     """Create multiple records in `model`"""
     client = ctx.obj.get("odoo")
     ids = client.create(model, values)
-    click.echo(json.dumps({"ids": ids}, ensure_ascii=False))
+    echo_json({"ids": ids})

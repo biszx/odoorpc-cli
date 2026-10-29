@@ -1,6 +1,6 @@
-import json
-
 import click
+
+from odoorpc_cli.tools.output import echo_json
 
 
 @click.command("info")
@@ -11,5 +11,4 @@ def info(ctx):
     if client is None:
         click.echo("Not authenticated — run 'odoo auth login' to authenticate")
         return
-    res = client.get_current_user()
-    click.echo(json.dumps(res, indent=2, ensure_ascii=False))
+    echo_json(client.get_current_user())

@@ -1,8 +1,7 @@
-import json
-
 import click
 
 from odoorpc_cli.tools.click_types import JSON
+from odoorpc_cli.tools.output import echo_json
 
 
 @click.command("write")
@@ -55,8 +54,8 @@ def write(
     id_list = sorted(set(id_list))
 
     if not id_list:
-        click.echo(json.dumps({"success": False, "ids": []}))
+        echo_json({"success": False, "ids": []})
         return
 
     ok = client.write(model, id_list, vals)
-    click.echo(json.dumps({"success": bool(ok)}))
+    echo_json({"success": bool(ok)})
