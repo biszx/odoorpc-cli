@@ -1,9 +1,8 @@
-import json
-
 import click
 
 from odoorpc_cli.tools import html_images
 from odoorpc_cli.tools.click_types import JSON
+from odoorpc_cli.tools.output import echo_json
 
 
 @click.command("create")
@@ -27,4 +26,4 @@ def create(ctx, model: str, values) -> None:
     except FileNotFoundError as exc:
         raise click.ClickException(str(exc)) from exc
     ids = client.create(model, values)
-    click.echo(json.dumps({"ids": ids}, ensure_ascii=False))
+    echo_json({"ids": ids})

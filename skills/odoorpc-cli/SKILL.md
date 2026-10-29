@@ -1,9 +1,6 @@
 ---
-name: odoorpc-cli
-description: Handles Odoo JSON-RPC operations through the `odoo` CLI, including authentication, model and field inspection, record querying, CRUD operations, and arbitrary model method execution.
-metadata:
-  version: 1.1.1
-  category: meta
+name: "odoorpc-cli"
+description: "Handles Odoo JSON-RPC operations through the `odoo` CLI, including authentication, model and field inspection, record querying, CRUD operations, and arbitrary model method execution."
 ---
 
 # Odoo RPC CLI
@@ -11,6 +8,52 @@ metadata:
 A lightweight command-line interface for interacting with Odoo through JSON-RPC.
 
 `odoo` simplifies common Odoo operations directly from the terminal, including authentication, model inspection, record management, and method execution.
+
+## Content List
+
+- [Features](#features)
+- [Before the first command: update the CLI](#before-the-first-command-update-the-cli)
+- [Installation](#installation)
+- [Authentication](#authentication)
+- [Command Overview](#command-overview)
+- [Output format](#output-format)
+- [Search and Read Records](#search-and-read-records)
+  - [Syntax](#syntax)
+  - [Options](#options)
+  - [Example](#example)
+- [Count Records](#count-records)
+  - [Syntax](#syntax-1)
+  - [Example](#example-1)
+- [Model Inspection](#model-inspection)
+  - [Search Models](#search-models)
+  - [Inspect Model Fields](#inspect-model-fields)
+- [Create Records](#create-records)
+  - [Syntax](#syntax-2)
+  - [Example](#example-2)
+- [Update Records](#update-records)
+  - [Syntax](#syntax-3)
+  - [Examples](#examples)
+  - [Notes](#notes)
+- [Delete Records](#delete-records)
+  - [Syntax](#syntax-4)
+  - [Examples](#examples-1)
+  - [Notes](#notes-1)
+- [HTML field images](#html-field-images)
+- [Call Model Methods](#call-model-methods)
+  - [Syntax](#syntax-5)
+  - [Examples](#examples-2)
+- [JSON Argument Validation](#json-argument-validation)
+- [Common JSON Issues](#common-json-issues)
+  - [Unescaped Quotes](#unescaped-quotes)
+  - [Trailing Commas](#trailing-commas)
+  - [Wrong JSON Type](#wrong-json-type)
+  - [Shell Expansion Issues](#shell-expansion-issues)
+- [Validate JSON Quickly](#validate-json-quickly)
+- [Troubleshooting](#troubleshooting)
+  - [Authentication Errors](#authentication-errors)
+  - [Invalid JSON](#invalid-json)
+  - [Connection Failures](#connection-failures)
+- [Quick Example Workflow](#quick-example-workflow)
 
 ## Features
 
@@ -20,6 +63,17 @@ A lightweight command-line interface for interacting with Odoo through JSON-RPC.
 - Create, update, and delete records
 - Execute arbitrary model methods
 - Validate JSON arguments before execution
+- Move base64 images in html fields out to files on read, and inline them back on write
+
+## Before the first command: update the CLI
+
+Run this once per session, before any other `odoo` command:
+
+```bash
+odoo update
+```
+
+It force-checks PyPI and, when a newer release exists, updates itself through the install method it detects (pip, pipx, uv, brew). Then run the intended command. If the update fails it prints the manual commands — run the one matching this machine. Running it again in the same session is cheap once the version is current.
 
 ## Installation
 
@@ -35,12 +89,40 @@ Verify the installation:
 odoo --version
 ```
 
+## Authentication
+
+Authenticate against your Odoo server before using other commands:
+
+```bash
+odoo auth login
+```
+
+You will be prompted for:
+
+- Host
+- Database
+- Username
+- Password
+
+You may also provide these values through command options.
+
+Check the current authenticated session:
+
+```bash
+odoo auth info
+```
+
+If authentication has not been configured, the CLI will return:
+
+```text
+Not authenticated — run 'odoo auth login' to authenticate
+```
+
 ## Command Overview
 
 | Category       | Command             | Description                         |
 | -------------- | ------------------- | ----------------------------------- |
 | Authentication | `odoo auth login`   | Authenticate with the Odoo server   |
-| Authentication | `odoo auth logout`  | Logout from the Odoo server         |
 | Authentication | `odoo auth info`    | Show current authentication details |
 | Search         | `odoo search read`  | Search and retrieve records         |
 | Search         | `odoo search count` | Count matching records              |
@@ -51,25 +133,9 @@ odoo --version
 | Records        | `odoo unlink`       | Delete records                      |
 | Methods        | `odoo call-method`  | Execute arbitrary model methods     |
 
-## Authentication
+## Output format
 
-Check the current authenticated session:
-
-```bash
-odoo auth info
-```
-
-If authentication has not been configured, ask user for authentication credentials but suggest user to authenticate by himself by running:
-
-```bash
-odoo auth login
-```
-
-If user let you know the credentials, you can also provide them directly as arguments:
-
-```bash
-odoo auth login --host <host> --db <database> --username <username> --password <password>
-```
+Commands that return JSON print it minified — one line, no spaces, e.g. `[{"id":1,"name":"A"}]`. That is deliberate, so treat it as what the output looks like, not something to correct.
 
 ## Search and Read Records
 
@@ -90,6 +156,7 @@ odoo search read <model> --domain '<domain-json>' --fields <field1,field2> --ord
 | `--order`  | None    | Sort expression, e.g. `name asc` or `id desc`   |
 | `--offset` | `0`     | Number of records to skip (for pagination)      |
 | `--limit`  | None    | Maximum number of records to return             |
+| `--raw`    | off     | Keep base64 images inside html fields (see [HTML field images](#html-field-images)) |
 
 ### Example
 
@@ -256,6 +323,32 @@ odoo unlink res.partner \
 - `--ids` accepts comma-separated IDs
 - `--domain` accepts a JSON array (Odoo domain). Use `--limit` to bound results when using `--domain`.
 - When both `--ids` and `--domain` are provided, the union of IDs will be used.
+
+## HTML field images
+
+Odoo stores pasted screenshots inside html fields (`description`, `result`, chatter bodies) as `data:image/...;base64,...`. Reading one such field dumps the whole blob into the output; writing one means producing it. The CLI swaps the blob for a file path in both directions.
+
+**On read** (any `search read` whose `--fields` include an html field), each image is written to `~/.cache/odoorpc-cli/images/<sha1>.<ext>` and its `src` becomes a `file://` path:
+
+```bash
+odoo search read project.task --fields description
+# "description": "<p><img src=\"file:///Users/you/.cache/odoorpc-cli/images/9f2c….png\"></p>"
+```
+
+- Read that path with the image viewer when the picture matters; the bytes are the original image.
+- `--raw` returns the field untouched, base64 included — use it only when the literal value is needed.
+- Identical images reuse one file (content-addressed). Files older than 7 days are deleted on the next read that finds an image.
+- `$ODOO_IMAGE_DIR` overrides the cache location.
+
+**On write** (`create` and `write`), a `src="file:///path/to/image.png"` in an html field is replaced with that file's data URI before the record is sent, so the description embeds the real image:
+
+```bash
+odoo write project.task --ids 42 --value '{"description": "<p><img src=\"file:///tmp/shot.png\"></p>"}'
+```
+
+- Only html fields are touched; a `file://` anywhere else is left alone.
+- A missing file fails the command with the path in the error instead of storing a broken reference.
+- Mime type comes from the extension (`.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.svg`).
 
 ## Call Model Methods
 

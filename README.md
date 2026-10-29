@@ -41,6 +41,12 @@ Search for records:
 odoo search read res.partner --domain "[[\"name\", \"ilike\", \"Acme\"]]" --fields name,email
 ```
 
+Responses are minified by default. Pass `--pretty` before the subcommand for indented output:
+
+```
+odoo --pretty search read res.partner --fields name,email
+```
+
 Call a custom model method:
 
 ```

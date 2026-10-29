@@ -1,6 +1,6 @@
-import json
-
 import click
+
+from odoorpc_cli.tools.output import echo_json
 
 
 @click.command("field")
@@ -9,5 +9,4 @@ import click
 def model_field(ctx, model: str):
     """Retrieve metadata for fields of `model`"""
     client = ctx.obj.get("odoo")
-    res = client.model_field(model)
-    click.echo(json.dumps(res, indent=2, ensure_ascii=False))
+    echo_json(client.model_field(model))

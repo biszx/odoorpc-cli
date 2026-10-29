@@ -1,9 +1,8 @@
-import json
-
 import click
 
 from odoorpc_cli.tools import html_images
 from odoorpc_cli.tools.click_types import JSON
+from odoorpc_cli.tools.output import echo_json
 
 
 @click.command("read")
@@ -81,4 +80,4 @@ def search_read(
                 for field in html_fields:
                     if record.get(field):
                         record[field] = html_images.externalize_images(record[field])
-    click.echo(json.dumps(res, indent=2, ensure_ascii=False))
+    echo_json(res)

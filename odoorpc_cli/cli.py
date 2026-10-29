@@ -17,10 +17,16 @@ from odoorpc_cli.tools.version_check import check_for_updates
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.version_option(version=__version__, prog_name="odoorpc_cli")
+@click.option(
+    "--pretty",
+    is_flag=True,
+    help="Indent JSON responses instead of printing them minified.",
+)
 @click.pass_context
-def odoo(ctx):
+def odoo(ctx, pretty: bool):
     """Odoo RPC CLI - interact with your Odoo instance from the command line"""
     ctx.ensure_object(dict)
+    ctx.obj["pretty"] = pretty
 
     if ctx.invoked_subcommand != "update":
         try:

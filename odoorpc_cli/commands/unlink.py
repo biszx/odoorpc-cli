@@ -1,8 +1,7 @@
-import json
-
 import click
 
 from odoorpc_cli.tools.click_types import JSON
+from odoorpc_cli.tools.output import echo_json
 
 
 @click.command("unlink")
@@ -46,8 +45,8 @@ def unlink(
     id_list = sorted(set(id_list))
 
     if not id_list:
-        click.echo(json.dumps({"success": False, "ids": []}))
+        echo_json({"success": False, "ids": []})
         return
 
     res = client.unlink(model, id_list)
-    click.echo(json.dumps({"success": bool(res)}))
+    echo_json({"success": bool(res)})

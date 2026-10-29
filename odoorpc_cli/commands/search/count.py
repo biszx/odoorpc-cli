@@ -1,8 +1,7 @@
-import json
-
 import click
 
 from odoorpc_cli.tools.click_types import JSON
+from odoorpc_cli.tools.output import echo_json
 
 
 @click.command("count")
@@ -21,4 +20,4 @@ def search_count(ctx, model: str, domain: list):
     """Count records in `model` matching domain"""
     client = ctx.obj.get("odoo")
     res = client.search_count(model, domain)
-    click.echo(json.dumps({"count": res}, indent=2, ensure_ascii=False))
+    echo_json({"count": res})
